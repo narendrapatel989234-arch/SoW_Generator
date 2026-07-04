@@ -1,0 +1,74 @@
+:root {
+  /* Brand Colors */
+  --app-color-bg: #f5f7fb;
+  --app-color-surface: #ffffff;
+  --app-color-surface-muted: #eef3f8;
+  
+  --app-color-primary: #0d212c;
+  --app-color-primary-strong: #08171F;
+  --app-color-primary-soft: #D9E6EB;
+  
+  --app-color-accent: #36c0c9;
+  --app-color-accent-soft: #DDF7F9;
+  
+  /* Status Colors */
+  --app-color-warning: #b7791f;
+  --app-color-success: #0a8754;
+  --app-color-success-soft: #d6f1e3;
+  --app-color-danger: #d92d20;
+  --app-color-danger-soft: #fde3e1;
+  
+  /* Text */
+  --app-color-text: #0d212c;
+  --app-color-text-muted: #5b7e95;
+  
+  /* Utilities */
+  --app-color-border: #d9e2ec;
+  --app-color-focus: #36c0c9;
+  
+  /* Elevation & Layout */
+  --app-shadow-soft: 0 10px 30px rgba(15,35,52,0.08);
+  --app-radius-sm: 6px;
+  --app-radius-md: 8px;
+  --app-font-family: 'Poppins', 'Calibri', system-ui, sans-serif;
+  
+  --app-sidebar-width: 256px;
+  --app-sidebar-collapsed-width: 72px;
+  --app-topbar-height: 64px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--app-color-bg);
+  color: var(--app-color-text);
+  font-family: var(--app-font-family);
+  font-size: 14px;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible {
+  outline: 2px solid var(--app-color-focus);
+  outline-offset: 2px;
+}
+
+h1, h2, h3, h4, h5, h6, p {
+  margin: 0;
+}
