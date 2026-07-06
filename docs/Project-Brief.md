@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-The M42 RFP to SOW platform is an AI-powered web application that enables users to upload an RFP (Request for Proposal) along with supporting documents. The system extracts relevant information, generates contextual tags, and produces an editable Statement of Work (SOW) draft.
+The M42 RFP to SOW platform is an AI-powered web application that enables users to upload an RFP (Request for Proposal) along with supporting documents. The system extracts relevant information, generates contextual tags, and produces an editable Scope of Work (SOW) draft.
 
 The objective is to reduce manual effort, improve document consistency, and accelerate proposal creation while keeping users in control through review, inline editing, and collaboration.
 
