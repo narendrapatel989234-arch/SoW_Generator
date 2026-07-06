@@ -27,20 +27,21 @@ export function StepProgress({
   width
 }: StepProgressProps) {
   return (
-    <div 
-      className="step-progress" 
-      data-orientation={orientation} 
+    <div
+      className="step-progress"
+      data-orientation={orientation}
       data-variant={variant}
       style={{ width }}
     >
       {steps.map((step, idx) => {
         const isActive = activeStep === step.id;
         const isCompleted = step.status === 'completed';
-        
+
+
         return (
           <React.Fragment key={step.id}>
-            <div 
-              className="step-progress__item" 
+            <div
+              className="step-progress__item"
               data-active={isActive}
               data-status={step.status || (isActive ? 'pending' : '')}
               onClick={() => onStepClick?.(step.id)}
