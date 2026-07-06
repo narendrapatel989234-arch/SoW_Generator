@@ -6,7 +6,7 @@ export type IconName =
   | 'loader' | 'copy' | 'hard-drive' | 'eye'
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
-  | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize'
+  | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip'
   | 'bold' | 'italic' | 'underline' | 'strikethrough';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
@@ -108,6 +108,10 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></>; break;
     case 'strikethrough':
       path = <><line x1="5" y1="12" x2="19" y2="12"></line><path d="M16 6C16 6 14.5 4 12 4C9.5 4 8 6 8 8C8 10 16 14 16 16C16 18 14.5 20 12 20C9.5 20 8 18 8 18"></path></>; break;
+    case 'external-link':
+      path = <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></>; break;
+    case 'paperclip':
+      path = <><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></>; break;
     default:
       path = <><circle cx="12" cy="12" r="10" /><text x="12" y="16" fontSize="10" textAnchor="middle" fill="currentColor" stroke="none">{name.substring(0,2).toUpperCase()}</text></>;
   }
