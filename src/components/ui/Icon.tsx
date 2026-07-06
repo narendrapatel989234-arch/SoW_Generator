@@ -2,7 +2,12 @@ import React from 'react';
 
 export type IconName = 
   | 'check' | 'chevron-down' | 'chevron-right' | 'edit' | 'file' | 'trash' | 'upload' | 'x' | 'plus'
-  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right';
+  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
+  | 'loader' | 'copy' | 'hard-drive'
+  | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
+  | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
+  | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize'
+  | 'bold' | 'italic' | 'underline' | 'strikethrough';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -51,6 +56,54 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>; break;
     case 'edit':
       path = <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>; break;
+    case 'refresh-cw':
+      path = <><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></>; break;
+    case 'loader':
+      path = <><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></>; break;
+    case 'copy':
+      path = <><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></>; break;
+    case 'hard-drive':
+      path = <><line x1="22" y1="12" x2="2" y2="12"></line><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path><line x1="6" y1="16" x2="6.01" y2="16"></line><line x1="10" y1="16" x2="10.01" y2="16"></line></>; break;
+    case 'corner-up-left':
+      path = <><polyline points="9 14 4 9 9 4"></polyline><path d="M20 20v-7a4 4 0 0 0-4-4H4"></path></>; break;
+    case 'corner-up-right':
+      path = <><polyline points="15 14 20 9 15 4"></polyline><path d="M4 20v-7a4 4 0 0 1 4-4h12"></path></>; break;
+    case 'zoom-in':
+      path = <><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></>; break;
+    case 'zoom-out':
+      path = <><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></>; break;
+    case 'list':
+      path = <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></>; break;
+    case 'list-ordered': // Feather doesn't have list-ordered, but we can make one using text or similar
+      path = <><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M4 6h1v4"></path><path d="M4 10h2"></path><path d="M4 16h2v2H4z"></path></>; break;
+    case 'align-left':
+      path = <><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></>; break;
+    case 'align-center':
+      path = <><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></>; break;
+    case 'align-right':
+      path = <><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></>; break;
+    case 'align-justify':
+      path = <><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></>; break;
+    case 'link':
+      path = <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></>; break;
+    case 'image':
+      path = <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></>; break;
+    case 'grid':
+      path = <><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="3" y1="15" x2="21" y2="15"></line><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></>; break;
+    case 'x-circle':
+      path = <><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></>; break;
+    case 'maximize':
+      path = <><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></>; break;
+    case 'minimize':
+      path = <><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></>; break;
+    case 'bold':
+      path = <><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path></>; break;
+    case 'italic':
+      path = <><line x1="19" y1="4" x2="10" y2="4"></line><line x1="14" y1="20" x2="5" y2="20"></line><line x1="15" y1="4" x2="9" y2="20"></line></>; break;
+    case 'underline':
+      path = <><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></>; break;
+    case 'strikethrough':
+      path = <><line x1="5" y1="12" x2="19" y2="12"></line><path d="M16 6C16 6 14.5 4 12 4C9.5 4 8 6 8 8C8 10 16 14 16 16C16 18 14.5 20 12 20C9.5 20 8 18 8 18"></path></>; break;
     default:
       path = <><circle cx="12" cy="12" r="10" /><text x="12" y="16" fontSize="10" textAnchor="middle" fill="currentColor" stroke="none">{name.substring(0,2).toUpperCase()}</text></>;
   }

@@ -4,32 +4,79 @@ import { FileUpload } from '../components/ui/FileUpload';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Icon } from '../components/ui/Icon';
-import { StepProgress, type Step } from '../components/ui/StepProgress';
 
-export function UploadRFP() {
+interface UploadRFPProps {
+  onTransitionToDraft?: () => void;
+}
+
+export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const [rfpFiles, setRfpFiles] = useState<File[]>([]);
   const [supportFiles, setSupportFiles] = useState<File[]>([]);
   const [tagsInput, setTagsInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [rfpError, setRfpError] = useState('');
+  const [supportError, setSupportError] = useState('');
 
-  const steps: Step[] = [
-    { id: 'upload', title: 'Upload', status: 'pending' },
-    { id: 'review', title: 'Review', status: 'pending' },
-    { id: 'sow', title: 'SOW Draft', status: 'pending' },
-  ];
 
   const handleRfpFileSelect = (files: File[]) => {
+    setRfpError('');
     if (files.length > 0) setRfpFiles([files[0]]);
   };
   const handleRfpFileRemove = (index: number) => {
+    setRfpError('');
     setRfpFiles(prev => prev.filter((_, i) => i !== index));
   };
+  const handleRfpFileReplace = (_index: number, file: File) => {
+    setRfpError('');
+    setRfpFiles([file]);
+  };
 
-  const handleSupportFileSelect = (files: File[]) => setSupportFiles(prev => [...prev, ...files]);
+  const handleSupportFileSelect = (files: File[]) => {
+    setSupportError('');
+    let hasDuplicate = false;
+    const newFiles: File[] = [];
+    
+    files.forEach(f => {
+      // Check for duplicate by name and size
+      const isDuplicate = supportFiles.some(existing => existing.name === f.name && existing.size === f.size) ||
+                          newFiles.some(existing => existing.name === f.name && existing.size === f.size);
+      if (isDuplicate) {
+        hasDuplicate = true;
+      } else {
+        newFiles.push(f);
+      }
+    });
+
+    if (hasDuplicate) {
+      setSupportError('One or more files were not added because they have already been uploaded.');
+    }
+    
+    if (newFiles.length > 0) {
+      setSupportFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
   const handleSupportFileRemove = (index: number) => {
+    setSupportError('');
     setSupportFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSupportFileReplace = (index: number, file: File) => {
+    setSupportError('');
+    const isDuplicate = supportFiles.some((existing, i) => i !== index && existing.name === file.name && existing.size === file.size);
+    if (isDuplicate) {
+      setSupportError('This file has already been uploaded.');
+      return;
+    }
+    setSupportFiles(prev => {
+      const newArr = [...prev];
+      newArr[index] = file;
+      return newArr;
+    });
   };
 
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -65,12 +112,22 @@ export function UploadRFP() {
     setTags([]);
     setTagsInput('');
     setHasTriedSubmit(false);
+    setIsSubmitting(false);
+    setShowToast(false);
+    setRfpError('');
+    setSupportError('');
   };
 
   const handleSubmit = () => {
     setHasTriedSubmit(true);
     if (rfpFiles.length === 0) return;
-    console.log("Submitting:", { rfpFiles, supportFiles, tags });
+    
+    setIsSubmitting(true);
+    setShowToast(true);
+    
+    setTimeout(() => {
+      onTransitionToDraft?.();
+    }, 2000);
   };
 
   return (
@@ -83,13 +140,6 @@ export function UploadRFP() {
           <p className="screen-description" style={{ margin: 0, fontSize: '15px', lineHeight: '1.5', color: 'var(--app-color-text-muted)' }}>
             Provide your main RFP and any supporting documents. Our system will analyze them to instantly generate a contextual SOW draft.
           </p>
-        </div>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '10px', paddingLeft: '24px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--app-color-accent)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Step 1 of 3
-          </div>
-          <StepProgress steps={steps} activeStep="upload" />
         </div>
       </div>
 
@@ -112,7 +162,18 @@ export function UploadRFP() {
             onFileSelect={handleRfpFileSelect}
             files={rfpFiles}
             onFileRemove={handleRfpFileRemove}
+            onFileReplace={handleRfpFileReplace}
+            disabled={rfpFiles.length >= 1}
+            disabledMessage="Only one Primary RFP document can be uploaded. Remove or replace the existing file to upload another."
+            showReplace={true}
+            statusText="Uploaded"
           />
+          {rfpError && (
+            <div className="error-text">
+              <Icon name="alert-circle" size={16} />
+              {rfpError}
+            </div>
+          )}
           {hasTriedSubmit && rfpFiles.length === 0 && (
             <div className="error-text">
               <Icon name="alert-circle" size={16} />
@@ -140,19 +201,30 @@ export function UploadRFP() {
             onFileSelect={handleSupportFileSelect}
             files={supportFiles}
             onFileRemove={handleSupportFileRemove}
+            onFileReplace={handleSupportFileReplace}
+            disabled={supportFiles.length >= 5}
+            disabledMessage="Maximum of 5 supporting documents uploaded. Remove an existing document to upload another."
+            showReplace={true}
+            statusText="Uploaded"
           />
+          {supportError && (
+            <div className="error-text">
+              <Icon name="alert-circle" size={16} />
+              {supportError}
+            </div>
+          )}
         </Card>
 
         <Card title={
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span className="card-number-badge">3</span>
-            Tags & Context
+            Project Keywords
           </div>
         }>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
               <p style={{ fontSize: '14px', color: 'var(--app-color-text-muted)', marginBottom: '16px' }}>
-                Add context tags to guide the SOW generation (press Enter to add).
+                Add project keywords manually or extract them automatically from the uploaded RFP to improve SOW generation.
               </p>
               
               <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
@@ -181,11 +253,11 @@ export function UploadRFP() {
                     }}
                   />
                 </div>
-                <Button variant="secondary" onClick={handleExtractTags} disabled={isExtracting}>
+                <Button variant="primary" onClick={handleExtractTags} disabled={isExtracting || rfpFiles.length === 0}>
                   {isExtracting ? (
                     <><Icon name="loader" size={16} className="icon-spin" /> Extracting...</>
                   ) : (
-                    <><Icon name="tag" size={16} /> Extract from RFP</>
+                    <><Icon name="tag" size={16} /> Extract Keywords</>
                   )}
                 </Button>
               </div>
@@ -222,13 +294,49 @@ export function UploadRFP() {
         <div style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', marginRight: 'auto' }}>
           Submit will be enabled once RFP is uploaded
         </div>
-        <Button variant="ghost" onClick={handleClear} style={{ color: 'var(--app-color-text)', border: '1px solid var(--app-color-border)' }}>
+        <Button variant="ghost" onClick={handleClear} disabled={isSubmitting} style={{ color: 'var(--app-color-text)', border: '1px solid var(--app-color-border)' }}>
           <Icon name="trash" size={16} /> Clear
         </Button>
-        <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0} style={{ padding: '10px 24px' }}>
-          Submit <Icon name="arrow-right" size={16} />
+        <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || isSubmitting} style={{ padding: '10px 24px' }}>
+          {isSubmitting ? (
+            <><Icon name="loader" size={16} className="icon-spin" /> Processing...</>
+          ) : (
+            <>Submit <Icon name="arrow-right" size={16} /></>
+          )}
         </Button>
       </div>
+
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'var(--app-color-surface)',
+          border: '1px solid var(--app-color-success)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          padding: '16px 24px',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 1000,
+          animation: 'slideUpFade 0.3s ease-out forwards'
+        }}>
+          <div style={{ color: 'var(--app-color-success)' }}>
+            <Icon name="check-circle" size={24} />
+          </div>
+          <div style={{ color: 'var(--app-color-text)', fontWeight: 500, fontSize: '14px' }}>
+            RFP uploaded successfully. SOW extraction is in progress.
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes slideUpFade {
+          from { opacity: 0; transform: translate(-50%, 20px); }
+          to { opacity: 1; transform: translate(-50%, 0); }
+        }
+      `}</style>
     </>
   );
 }

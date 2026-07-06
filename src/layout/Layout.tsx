@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LeftNavigation, type ScreenId } from '../components/reusable/LeftNavigation';
 import { TopNavigation } from '../components/reusable/TopNavigation';
 import { UploadRFP } from '../screens/UploadRFP';
+import { SOWDraft } from '../screens/SOWDraft';
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -12,7 +13,9 @@ export function Layout() {
   const renderScreen = () => {
     switch (activeScreen) {
       case 'rfp-to-sow':
-        return <UploadRFP />;
+        return <UploadRFP onTransitionToDraft={() => setActiveScreen('sow-draft')} />;
+      case 'sow-draft':
+        return <SOWDraft />;
       default:
         return <div>Screen not found</div>;
     }
