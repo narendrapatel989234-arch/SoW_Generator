@@ -6,23 +6,23 @@ interface RichEditorProps {
   activeSectionIndex: number;
   isGenerating?: boolean;
   children?: React.ReactNode;
+  onSectionChange?: (index: number) => void;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, children }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, children, onSectionChange }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<number>(100);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
-  const [contents, setContents] = useState<string[]>(() => {
-    return tocItems.map((item) => {
-      let html = `<h2 style="color: var(--app-color-primary); margin-bottom: 16px;">${item}</h2>`;
+  const [contentHtml, setContentHtml] = useState<string>(() => {
+    return tocItems.map((item, idx) => {
+      let html = `<div id="sow-section-${idx}" class="sow-section"><h2 style="color: var(--app-color-primary); margin-bottom: 16px;">${item}</h2>`;
       switch (item) {
         case 'Executive Summary':
-          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">This Statement of Work defines the proposed approach, scope, responsibilities, deliverables, and implementation roadmap for the digital transformation initiative described in the submitted RFP. The engagement is designed to modernize the client’s existing technology environment, improve operational efficiency, reduce technical debt, and create a scalable foundation for future business growth.</p>
+          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">This Scope of Work defines the proposed approach, scope, responsibilities, deliverables, and implementation roadmap for the digital transformation initiative described in the submitted RFP. The engagement is designed to modernize the client’s existing technology environment, improve operational efficiency, reduce technical debt, and create a scalable foundation for future business growth.</p>
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The proposed solution focuses on migrating legacy capabilities into a more resilient, cloud-ready, and modular architecture. It includes discovery, solution design, implementation planning, system integration, validation, deployment support, and post-go-live stabilization. The delivery approach will be structured in phases to ensure transparency, measurable progress, and clear alignment between business goals, technical outcomes, and stakeholder expectations.</p>
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">Throughout the engagement, the delivery team will collaborate closely with the client’s business, technology, security, and operations stakeholders. This collaboration will help validate requirements, confirm assumptions, identify risks early, and ensure that the final solution is practical, secure, maintainable, and aligned with enterprise standards.</p>
-          <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The expected outcome of this engagement is a well-defined and executable SOW that provides clarity on scope, timelines, deliverables, dependencies, acceptance criteria, and governance. The generated draft should serve as a strong starting point for review, negotiation, and final approval between both parties.</p>`;
+          <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The expected outcome of this engagement is a well-defined and executable Scope of Work that provides clarity on scope, timelines, deliverables, dependencies, acceptance criteria, and governance. The generated draft should serve as a strong starting point for review, negotiation, and final approval between both parties.</p>`;
           break;
         case 'Objectives':
           html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The primary objectives of this engagement are carefully structured to address the core business challenges identified during the discovery phase. By executing on these objectives, we aim to deliver measurable improvements in performance, scalability, and cost efficiency.</p>
@@ -95,7 +95,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
           html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The total estimated cost for this project is based on a Time & Materials (T&M) model with a capped maximum budget of <strong>$145,000 USD</strong>. This covers all engineering, project management, and specialized architectural consulting hours required over the 12-week period.</p>
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">Payment milestones are strategically aligned with the delivery of key project artifacts to ensure mutual accountability:</p>
           <ul style="margin-bottom: 16px; padding-left: 24px; line-height: 1.6; color: var(--app-color-text);">
-            <li><strong>Milestone 1 (20% - $29,000):</strong> Invoiced upon project kickoff and formal signing of this Statement of Work.</li>
+            <li><strong>Milestone 1 (20% - $29,000):</strong> Invoiced upon project kickoff and formal signing of this Scope of Work.</li>
             <li><strong>Milestone 2 (30% - $43,500):</strong> Invoiced upon delivery and formal client approval of the Architecture Design Document (ADD).</li>
             <li><strong>Milestone 3 (30% - $43,500):</strong> Invoiced upon successful completion of User Acceptance Testing (UAT) in the staging environment.</li>
             <li><strong>Milestone 4 (20% - $29,000):</strong> Invoiced upon final go-live, successful production deployment, and completion of the knowledge transfer phase.</li>
@@ -125,24 +125,74 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
           html += `<p style="margin-bottom: 16px; line-height: 1.6; color: var(--app-color-text);">This is auto-generated detailed content for the <strong>${item}</strong> section based on the extracted requirements from your RFP document. Our AI analysis indicates that this section requires further manual review to align perfectly with your internal compliance standards. Please review and modify as needed to ensure it meets your exact specifications.</p>`;
           break;
       }
+      html += '</div><br/>';
       return html;
-    });
+    }).join('\n');
   });
 
+  // Set initial content when not generating
   useEffect(() => {
     if (editorRef.current && !isGenerating) {
-      editorRef.current.innerHTML = contents[activeSectionIndex] || '';
+      if (editorRef.current.innerHTML === '') {
+        editorRef.current.innerHTML = contentHtml;
+      }
     }
-  }, [activeSectionIndex, isGenerating]);
+  }, [isGenerating, contentHtml]);
+
+  // Scroll to section when TOC item is clicked
+  useEffect(() => {
+    // Add an IntersectionObserver to detect which section is currently in view
+    // so we can update the active TOC item.
+    if (!onSectionChange) return;
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const index = parseInt(id.replace('sow-section-', ''), 10);
+          if (!isNaN(index)) {
+            onSectionChange(index);
+          }
+        }
+      });
+    }, {
+      root: null, // viewport or page-level scroll container
+      rootMargin: '-150px 0px -50% 0px', // Trigger when section hits the upper half of screen below header
+      threshold: 0
+    });
+
+    tocItems.forEach((_, idx) => {
+      const el = document.getElementById(`sow-section-${idx}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [tocItems.length, onSectionChange]);
+
+  useEffect(() => {
+    if (activeSectionIndex >= 0 && activeSectionIndex < tocItems.length) {
+      const sectionElement = document.getElementById(`sow-section-${activeSectionIndex}`);
+      const scrollArea = document.getElementById('sow-editor-scroll-area');
+      if (sectionElement && scrollArea) {
+        const containerRect = scrollArea.getBoundingClientRect();
+        const sectionRect = sectionElement.getBoundingClientRect();
+        
+        // Offset for spacing
+        const offset = 24; 
+        const scrollTop = scrollArea.scrollTop + (sectionRect.top - containerRect.top) - offset;
+        
+        scrollArea.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [activeSectionIndex, isGenerating, tocItems.length]);
 
   const handleContentChange = () => {
     if (editorRef.current && !isGenerating) {
       const currentHtml = editorRef.current.innerHTML;
-      setContents((prev: string[]) => {
-        const newContents = [...prev];
-        newContents[activeSectionIndex] = currentHtml;
-        return newContents;
-      });
+      setContentHtml(currentHtml);
       updateActiveFormats();
     }
   };
@@ -203,7 +253,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
   );
 
   return (
-    <div className={isFullscreen ? 'editor-fullscreen' : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'transparent', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'auto', width: '100%', backgroundColor: 'transparent', position: 'relative', minHeight: '900px' }}>
       
       {/* Toolbar */}
       <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`}>
@@ -279,33 +329,29 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         
         <ToolbarButton icon="x-circle" command="clearFormat" title="Clear Formatting" />
         
-        <div className="toolbar-separator" style={{ marginLeft: 'auto' }} />
-        
-        <button 
-          className="toolbar-button" 
-          title="Toggle Fullscreen"
-          onClick={() => setIsFullscreen(!isFullscreen)}
-        >
-          <Icon name={isFullscreen ? "minimize" : "maximize"} size={16} />
-        </button>
+
       </div>
 
       {/* Editor Content Area */}
-      <div style={{ flex: 1, overflow: 'auto', backgroundColor: 'transparent' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100%', padding: '20px 0 64px 0' }}>
-          <div style={{ 
-            width: '100%', 
-            flex: 1,
-            maxWidth: isFullscreen ? '1200px' : '900px', 
-            backgroundColor: '#fff',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-            borderRadius: '12px',
-            border: '1px solid var(--app-color-border)',
-            padding: '64px',
-          transform: `scale(${zoom / 100})`,
-          transformOrigin: 'top center',
-          transition: 'transform 0.2s'
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'transparent', overflow: 'hidden', paddingTop: '24px', paddingBottom: '64px', minHeight: 0 }}>
+        <div id="sow-editor-scroll-area" style={{ 
+          width: '100%', 
+          maxWidth: '1200px', 
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          backgroundColor: '#fff',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
+          border: '1px solid var(--app-color-border)',
+          borderRadius: '12px'
         }}>
+          <div style={{ 
+            padding: '48px',
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top center',
+            transition: 'transform 0.2s',
+            minHeight: '100%'
+          }}>
           {isGenerating ? (
             children
           ) : (
@@ -323,7 +369,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
               }}
             />
           )}
-        </div>
+          </div>
         </div>
       </div>
     </div>

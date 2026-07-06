@@ -11,12 +11,11 @@ interface FileUploadProps {
   files?: File[];
   onFileSelect?: (files: File[]) => void;
   onFileRemove?: (index: number) => void;
-  onFileReplace?: (index: number, file: File) => void;
+  onFilePreview?: (index: number) => void;
   className?: string;
   disabled?: boolean;
   disabledMessage?: string;
   onDisabledClick?: () => void;
-  showReplace?: boolean;
   statusText?: string;
 }
 
@@ -30,12 +29,11 @@ export function FileUpload({
   files = [], 
   onFileSelect, 
   onFileRemove,
-  onFileReplace,
+  onFilePreview,
   className = '',
   disabled = false,
   disabledMessage,
   onDisabledClick,
-  showReplace = false,
   statusText
 }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -81,174 +79,168 @@ export function FileUpload({
 
   const hasFooter = supportedFormats || maxSize || maxFiles;
 
-  return (
-    <div className={`file-upload-wrapper ${className}`}>
-      <div 
-        className="file-upload" 
-        onClick={handleContainerClick}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        data-drag={isDragging}
-        style={disabled ? { opacity: 0.6, cursor: 'not-allowed', backgroundColor: 'var(--app-color-surface-hover)', position: 'relative' } : {}}
-        onMouseEnter={() => disabled && setShowTooltip(true)}
-        onMouseLeave={() => setShowTooltip(false)}
-      >
-        {disabled && showTooltip && disabledMessage && (
+  const dropZone = (
+    <div 
+      className="file-upload" 
+      onClick={handleContainerClick}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      data-drag={isDragging}
+      style={{ ...(disabled ? { opacity: 0.6, cursor: 'not-allowed', backgroundColor: 'var(--app-color-surface-hover)', position: 'relative' } : {}), height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+      onMouseEnter={() => disabled && setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {disabled && showTooltip && disabledMessage && (
+        <div style={{
+          position: 'absolute',
+          top: '-40px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'var(--app-color-text)',
+          color: 'var(--app-color-surface)',
+          padding: '8px 12px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          width: 'max-content',
+          maxWidth: '280px',
+          textAlign: 'center',
+          zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          pointerEvents: 'none',
+          lineHeight: '1.4'
+        }}>
+          {disabledMessage}
           <div style={{
             position: 'absolute',
-            top: '-40px',
+            bottom: '-4px',
             left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'var(--app-color-text)',
-            color: 'var(--app-color-surface)',
-            padding: '8px 12px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            width: 'max-content',
-            maxWidth: '280px',
-            textAlign: 'center',
-            zIndex: 10,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            pointerEvents: 'none',
-            lineHeight: '1.4'
-          }}>
-            {disabledMessage}
-            <div style={{
-              position: 'absolute',
-              bottom: '-4px',
-              left: '50%',
-              transform: 'translateX(-50%) rotate(45deg)',
-              width: '8px',
-              height: '8px',
-              backgroundColor: 'var(--app-color-text)'
-            }} />
-          </div>
-        )}
-        <input 
-          type="file" 
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          multiple={multiple}
-          className="file-upload__input"
-        />
-        
-        <div className="file-upload__drop-icon">
-          <Icon name="upload-cloud" size={24} />
+            transform: 'translateX(-50%) rotate(45deg)',
+            width: '8px',
+            height: '8px',
+            backgroundColor: 'var(--app-color-text)'
+          }} />
         </div>
-        
-        <div className="file-upload__drop-title">{hint}</div>
-        <div className="file-upload__drop-hint">
-          {description.split('click to browse').map((part, i, arr) => (
-            <React.Fragment key={i}>
-              {part}
-              {i < arr.length - 1 && <span className="file-upload__browse-link">click to browse</span>}
-            </React.Fragment>
-          ))}
-        </div>
+      )}
+      <input 
+        type="file" 
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        multiple={multiple}
+        className="file-upload__input"
+      />
+      
+      <div className="file-upload__drop-icon">
+        <Icon name="upload-cloud" size={24} />
+      </div>
+      
+      <div className="file-upload__drop-title">{hint}</div>
+      <div className="file-upload__drop-hint" style={{ marginBottom: hasFooter ? '16px' : '0' }}>
+        {description.split('click to browse').map((part, i, arr) => (
+          <React.Fragment key={i}>
+            {part}
+            {i < arr.length - 1 && <span className="file-upload__browse-link">click to browse</span>}
+          </React.Fragment>
+        ))}
       </div>
       
       {hasFooter && (
-        <div className="file-upload__footer-inline" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '12px',
+          fontSize: '12px',
+          color: 'var(--app-color-text-muted)',
+          marginTop: '8px'
+        }}>
           {supportedFormats && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="file-text" size={14} />
-              <span>Supported formats: {supportedFormats.join(', ')}</span>
-            </div>
-          )}
-          {maxFiles && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="copy" size={14} />
-              <span>Max {maxFiles} files</span>
-            </div>
+            <span>Supported formats: {supportedFormats.join(', ')}</span>
           )}
           {maxSize && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Icon name="hard-drive" size={14} />
-              <span>{maxFiles ? `${maxSize} each` : `Max file size: ${maxSize}`}</span>
-            </div>
+            <span>Max file size: {maxSize}{maxFiles ? ' each' : ''}</span>
+          )}
+          {maxFiles && (
+            <span>Max files: {maxFiles}</span>
           )}
         </div>
       )}
+    </div>
+  );
 
+  return (
+    <div className={`file-upload-wrapper ${className} ${files.length > 0 ? 'file-upload-wrapper--has-files' : ''}`}>
+      <div>
+        {dropZone}
+      </div>
+      
       {files.length > 0 && (
-        <div className="file-upload__list">
-          {files.map((f, i) => (
-            <div key={i} className="file-item">
-              <div className="file-item__icon-wrapper">
-                <Icon name="file-text" size={20} />
-              </div>
-              <div className="file-item__main">
-                <div className="file-item__name">{f.name}</div>
-                <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
-                  {statusText && (
-                    <>
-                      <span>•</span>
-                      <span style={{ color: 'var(--app-color-success)' }}>{statusText}</span>
-                    </>
-                  )}
+        <div className="file-upload__files-section">
+          <h3 style={{ 
+            fontSize: '14px', 
+            fontWeight: 600, 
+            color: 'var(--app-color-text)', 
+            marginBottom: '16px',
+            marginTop: 0
+          }}>
+            Uploaded Files
+          </h3>
+          <div className="file-upload__grid">
+            {files.map((f, i) => (
+              <div 
+                key={i} 
+                className="file-item" 
+                onClick={() => onFilePreview?.(i)}
+                style={{ cursor: onFilePreview ? 'pointer' : 'default', margin: 0 }}
+              >
+                <div className="file-item__icon-wrapper">
+                  <Icon name="file-text" size={20} />
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {showReplace && onFileReplace && (
-                  <>
-                    <input 
-                      type="file" 
-                      id={`replace-input-${i}`}
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          onFileReplace(i, e.target.files[0]);
-                        }
-                      }}
-                    />
+                <div className="file-item__main">
+                  <div className="file-item__name">{f.name}</div>
+                  <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                    {statusText && (
+                      <>
+                        <span>•</span>
+                        <span style={{ color: 'var(--app-color-success)' }}>{statusText}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {onFilePreview && (
                     <button 
                       className="icon-button" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        const input = document.getElementById(`replace-input-${i}`) as HTMLInputElement;
-                        if (input) {
-                          input.value = '';
-                          input.click();
-                        }
+                        onFilePreview(i);
                       }}
-                      aria-label="Replace file"
+                      aria-label="Preview file"
+                      title="Preview file"
                     >
-                      <Icon name="refresh-cw" size={16} />
+                      <Icon name="eye" size={16} />
                     </button>
-                  </>
-                )}
-                {showReplace && !onFileReplace && (
-                  <button 
-                    className="icon-button" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                        fileInputRef.current.click();
-                      }
-                    }}
-                    aria-label="Replace file"
-                  >
-                    <Icon name="refresh-cw" size={16} />
-                  </button>
-                )}
-                {onFileRemove && (
-                  <button 
-                    className="icon-button" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFileRemove(i);
-                    }}
-                    aria-label="Remove file"
-                  >
-                    <Icon name="trash" size={16} />
-                  </button>
-                )}
+                  )}
+                  {onFileRemove && (
+                    <button 
+                      className="icon-button" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onFileRemove(i);
+                      }}
+                      aria-label="Remove file"
+                      title="Remove file"
+                    >
+                      <Icon name="trash" size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>

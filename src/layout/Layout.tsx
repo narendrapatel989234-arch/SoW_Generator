@@ -5,8 +5,12 @@ import { UploadRFP } from '../screens/UploadRFP';
 import { SOWDraft } from '../screens/SOWDraft';
 
 export function Layout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [activeScreen, setActiveScreen] = useState<ScreenId>('rfp-to-sow');
+  
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeScreen]);
   
   const toggleSidebar = () => setCollapsed(prev => !prev);
 
@@ -27,16 +31,14 @@ export function Layout() {
         collapsed={collapsed} 
         activeItem={activeScreen}
         onItemClick={setActiveScreen}
-        onToggleCollapse={toggleSidebar}
       />
       <main className="app-main">
         <TopNavigation 
-          collapsed={collapsed} 
           onToggleSidebar={toggleSidebar} 
-          title="RFP to SOW" 
-          breadcrumb="M42 Hub" 
+          title={activeScreen === 'sow-draft' ? 'SOW-2026-001' : 'Upload RFP'} 
+          breadcrumb={activeScreen === 'sow-draft' ? 'Review' : undefined}
         />
-        <div className="app-content">
+        <div className="app-content" id="app-content">
           {renderScreen()}
         </div>
       </main>

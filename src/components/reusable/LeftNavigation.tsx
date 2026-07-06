@@ -30,21 +30,24 @@ interface LeftNavigationProps {
   collapsed: boolean;
   activeItem?: ScreenId;
   onItemClick?: (id: ScreenId) => void;
-  onToggleCollapse?: () => void;
 }
 
-export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggleCollapse }: LeftNavigationProps) {
+export function LeftNavigation({ collapsed, activeItem, onItemClick }: LeftNavigationProps) {
   return (
     <aside className="app-sidebar" data-collapsed={collapsed}>
-      <div className="app-sidebar__brand">
-        <div className="app-sidebar__logo">
-          {collapsed ? 'M2' : 'M42'}
-        </div>
-        {!collapsed && (
-          <div className="app-sidebar__brand-copy">
-            SOW GENERATOR
-          </div>
-        )}
+      <div className="app-sidebar__brand" style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+        <img 
+          src="/Logo.png" 
+          alt="M42 Logo" 
+          style={{ 
+            width: '100%', 
+            maxWidth: collapsed ? '40px' : '64px', 
+            height: 'auto',
+            objectFit: 'contain',
+            objectPosition: collapsed ? 'center' : 'left',
+            transition: 'all 0.2s ease-in-out'
+          }} 
+        />
       </div>
       
       <div className="app-sidebar__content">
@@ -70,12 +73,12 @@ export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggleCol
       </div>
 
       <div className="app-sidebar__footer">
-        <div className="app-sidebar__user" title={collapsed ? "Admin User" : undefined}>
-          <div className="app-sidebar__avatar">AD</div>
+        <div className="app-sidebar__user" title={collapsed ? "Dipali Patil" : undefined}>
+          <div className="app-sidebar__avatar">DP</div>
           {!collapsed && (
             <div className="app-sidebar__user-copy">
-              <span className="app-sidebar__user-name">Admin User</span>
-              <span className="app-sidebar__user-email">M42 Admin</span>
+              <span className="app-sidebar__user-name">Dipali Patil</span>
+              <span className="app-sidebar__user-email">UI/UX Designer</span>
             </div>
           )}
         </div>

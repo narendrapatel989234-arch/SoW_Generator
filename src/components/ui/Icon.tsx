@@ -1,9 +1,9 @@
 import React from 'react';
 
 export type IconName = 
-  | 'check' | 'chevron-down' | 'chevron-right' | 'edit' | 'file' | 'trash' | 'upload' | 'x' | 'plus'
+  | 'check' | 'chevron-down' | 'chevron-right' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
   | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
-  | 'loader' | 'copy' | 'hard-drive'
+  | 'loader' | 'copy' | 'hard-drive' | 'eye'
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
   | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize'
@@ -32,6 +32,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
     case 'upload':
     case 'upload-cloud':
       path = <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>; break;
+    case 'download':
+      path = <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>; break;
     case 'trash':
       path = <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></>; break;
     case 'x':
@@ -72,6 +74,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></>; break;
     case 'zoom-out':
       path = <><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></>; break;
+    case 'eye':
+      path = <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></>; break;
     case 'list':
       path = <><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></>; break;
     case 'list-ordered': // Feather doesn't have list-ordered, but we can make one using text or similar
