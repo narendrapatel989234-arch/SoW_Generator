@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from './Icon';
+import { Button } from './Button';
 
 export interface AlertModalProps {
   isOpen: boolean;
@@ -9,9 +10,11 @@ export interface AlertModalProps {
   type?: 'success' | 'error' | 'info';
   hideCloseButton?: boolean;
   autoCloseDuration?: number;
+  showOkButton?: boolean;
+  okButtonText?: string;
 }
 
-export function AlertModal({ isOpen, onClose, title, description, type = 'success', hideCloseButton, autoCloseDuration }: AlertModalProps) {
+export function AlertModal({ isOpen, onClose, title, description, type = 'success', hideCloseButton, autoCloseDuration, showOkButton, okButtonText = 'Ok' }: AlertModalProps) {
   const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
@@ -127,16 +130,17 @@ export function AlertModal({ isOpen, onClose, title, description, type = 'succes
           )}
 
           <div style={{ 
+            width: '48px',
+            height: '48px',
             color: config.color, 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center',
             marginBottom: '16px',
-            backgroundColor: `color-mix(in srgb, ${config.color} 10%, transparent)`,
-            padding: '12px',
+            backgroundColor: `color-mix(in srgb, ${config.color} 15%, transparent)`,
             borderRadius: '50%'
           }}>
-            <Icon name={config.icon} size={36} />
+            <Icon name={config.icon} size={24} />
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -162,6 +166,14 @@ export function AlertModal({ isOpen, onClose, title, description, type = 'succes
                   animation: `AlertModalProgress ${autoCloseDuration}ms linear forwards`
                 }} />
               </div>
+            </div>
+          )}
+
+          {showOkButton && (
+            <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Button variant="accent" onClick={onClose} style={{ padding: '8px 32px' }}>
+                {okButtonText}
+              </Button>
             </div>
           )}
         </div>

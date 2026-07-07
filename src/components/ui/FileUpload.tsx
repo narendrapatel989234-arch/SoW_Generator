@@ -69,7 +69,7 @@ function FileItemCard({ file, index, onRemove, onPreview }: { file: File, index:
         {isComplete && onRemove && (
           <div style={{ marginLeft: '12px' }}>
             <button 
-              className="icon-button" 
+              className="delete-icon-button" 
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove(index);
@@ -207,8 +207,8 @@ export function FileUpload({
         <Icon name="upload-cloud" size={24} />
       </div>
       
-      <div className="file-upload__drop-title">{hint}</div>
-      <div className="file-upload__drop-hint" style={{ marginBottom: hasFooter ? '16px' : '0' }}>
+      <div className="file-upload__drop-hint" style={{ margin: 0, marginBottom: hasFooter ? '12px' : '0' }}>
+        {hint}{' '}
         {description.split('click to browse').map((part, i, arr) => (
           <React.Fragment key={i}>
             {part}

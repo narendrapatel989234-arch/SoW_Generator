@@ -20,7 +20,7 @@ const tocItems = [
 ];
 
 const processingStages = [
-  'Upload completed',
+  'Uploading RFP document',
   'Reading RFP document',
   'Extracting business requirements',
   'Identifying project scope',
@@ -57,17 +57,22 @@ export function SOWDraft() {
     if (!isProcessing) return;
     
     let progress = 0;
-    const totalTime = 12000; // 12 seconds
+    const totalTime = 14000; // 14 seconds total
     const intervalTime = 100;
     
     const timer = setInterval(() => {
       progress += (100 / (totalTime / intervalTime));
       setProcessingProgress(Math.min(progress, 100));
       
-      const stepIndex = Math.min(
-        Math.floor((progress / 100) * processingStages.length), 
-        processingStages.length - 1
-      );
+      let stepIndex = 0;
+      if (progress < 25) stepIndex = 0; // Uploading takes 25% (3.5s)
+      else if (progress < 40) stepIndex = 1;
+      else if (progress < 55) stepIndex = 2;
+      else if (progress < 70) stepIndex = 3;
+      else if (progress < 80) stepIndex = 4;
+      else if (progress < 90) stepIndex = 5;
+      else stepIndex = 6;
+      
       setCurrentProcessingStep(stepIndex);
       
       if (progress >= 100) {
@@ -122,9 +127,12 @@ export function SOWDraft() {
 
 
   useEffect(() => {
-    if (isShareModalOpen || isProcessing) {
+    const mainContent = document.querySelector('.main-content');
+    if (isShareModalOpen || isProcessing || isFadingOut) {
+      if (mainContent) (mainContent as HTMLElement).style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
     } else {
+      if (mainContent) (mainContent as HTMLElement).style.overflow = '';
       document.body.style.overflow = 'unset';
     }
 
@@ -135,10 +143,11 @@ export function SOWDraft() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => {
+      if (mainContent) (mainContent as HTMLElement).style.overflow = '';
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isShareModalOpen, isProcessing]);
+  }, [isShareModalOpen, isProcessing, isFadingOut]);
 
   return (
     <>
@@ -237,120 +246,181 @@ export function SOWDraft() {
                 <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Table of Contents</h3>
               </div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {tocItems.map((item, idx) => {
-                  return (
-                    <li key={idx} 
-                      className={`toc-tab-item ${activeSectionIndex === idx ? 'active' : ''}`}
-                      onClick={() => setActiveSectionIndex(idx)}
-                    >
-                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--app-color-accent)' }} />
-                      {item}
+                {isProcessing ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <li key={i} style={{ padding: '12px 14px' }}>
+                      <div className="skeleton-text" style={{ width: i % 2 === 0 ? '70%' : '85%', height: '10px' }} />
                     </li>
-                  );
-                })}
+                  ))
+                ) : (
+                  tocItems.map((item, idx) => {
+                    return (
+                      <li key={idx} 
+                        className={`toc-tab-item ${activeSectionIndex === idx ? 'active' : ''}`}
+                        onClick={() => {
+                          setActiveSectionIndex(idx);
+                          setTimeout(() => {
+                            const sectionElement = document.getElementById(`sow-section-${idx}`);
+                            const scrollArea = document.getElementById('sow-editor-scroll-area');
+                            if (sectionElement && scrollArea) {
+                              const containerRect = scrollArea.getBoundingClientRect();
+                              const sectionRect = sectionElement.getBoundingClientRect();
+                              const offset = 24; 
+                              const scrollTop = scrollArea.scrollTop + (sectionRect.top - containerRect.top) - offset;
+                              scrollArea.scrollTo({ top: scrollTop, behavior: 'smooth' });
+                            }
+                          }, 50);
+                        }}
+                      >
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--app-color-accent)' }} />
+                        {item}
+                      </li>
+                    );
+                  })
+                )}
               </ul>
             </div>
 
             {/* Main Content Area */}
             <div className="sow-main-content-wrapper" style={{ position: 'relative', height: '100%' }}>
               <div className="sow-main-content" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-                <RichEditor 
-                  tocItems={tocItems} 
-                  activeSectionIndex={activeSectionIndex}
-                  isGenerating={isProcessing}
-                  onSectionChange={setActiveSectionIndex}
-                >
-                </RichEditor>
+                {isProcessing ? (
+                  <div style={{ padding: '24px 0', opacity: 0.6, display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                    {/* Header Block */}
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <div className="skeleton-title" style={{ width: '56px', height: '56px', borderRadius: '12px' }}></div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="skeleton-title" style={{ width: '35%', height: '24px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '60%', height: '14px', borderRadius: '6px' }}></div>
+                      </div>
+                    </div>
+                    
+                    {/* Large Banner Block */}
+                    <div className="skeleton-title" style={{ width: '100%', height: '240px', borderRadius: '16px' }}></div>
+                    
+                    {/* Two Column Layout Block */}
+                    <div style={{ display: 'flex', gap: '32px' }}>
+                      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="skeleton-title" style={{ width: '45%', height: '22px', borderRadius: '6px', marginBottom: '8px' }}></div>
+                        <div className="skeleton-text" style={{ width: '100%', height: '12px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '100%', height: '12px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '92%', height: '12px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '96%', height: '12px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '85%', height: '12px', borderRadius: '6px' }}></div>
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="skeleton-title" style={{ width: '100%', height: '140px', borderRadius: '12px' }}></div>
+                        <div className="skeleton-text" style={{ width: '75%', height: '12px', borderRadius: '6px' }}></div>
+                        <div className="skeleton-text" style={{ width: '55%', height: '12px', borderRadius: '6px' }}></div>
+                      </div>
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                      <div className="skeleton-title" style={{ width: '30%', height: '22px', borderRadius: '6px', marginBottom: '8px' }}></div>
+                      <div className="skeleton-text" style={{ width: '100%', height: '12px', borderRadius: '6px' }}></div>
+                      <div className="skeleton-text" style={{ width: '90%', height: '12px', borderRadius: '6px' }}></div>
+                    </div>
+                  </div>
+                ) : (
+                  <RichEditor 
+                    tocItems={tocItems} 
+                    activeSectionIndex={activeSectionIndex}
+                    isGenerating={false}
+                    onSectionChange={setActiveSectionIndex}
+                  />
+                )}
               </div>
             </div>
           </>
         )}
         
         {activeTab === 'rfp' && (
-          <div style={{ padding: '32px 32px 80px 32px', width: '100%' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
+          <div style={{ padding: '32px', width: '100%', margin: '0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%' }}>
               
-              {/* Primary RFP (No Document Info) */}
-              <div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>RFP Document</h3>
-                  <div 
-                    style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
-                    onClick={() => setPreviewFile({ name: 'Project_Requirements_v2.pdf', size: '4.2 MB' })}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface)')}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                      <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
-                        <Icon name="file-text" size={20} />
-                      </div>
-                      <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
-                        <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Project_Requirements_v2.pdf</div>
-                        <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
-                          <span>4.2 MB</span>
-                        </div>
+              <Card title={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '15px' }}>RFP Document</div>
+                  </div>
+                </div>
+              }>
+                <div 
+                  className="file-item"
+                  style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
+                  onClick={() => setPreviewFile({ name: 'Project_Requirements_v2.pdf', size: '4.2 MB' })}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+                      <Icon name="file-text" size={20} />
+                    </div>
+                    <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+                      <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Project_Requirements_v2.pdf</div>
+                      <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+                        <span>4.2 MB</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
 
-              {/* Supporting Docs & Tags inside one Card */}
-              <div>
-                <Card>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Supporting Documents</h3>
-                      <div className="supporting-docs-grid">
-                        {[
-                          { name: 'Architecture_Diagrams.png', size: '1.8 MB' },
-                          { name: 'Security_Compliance_Guidelines.pdf', size: '3.4 MB' },
-                          { name: 'Vendor_Q_and_A.docx', size: '0.9 MB' },
-                          { name: 'Legacy_API_Specs.json', size: '2.1 MB' }
-                        ].map((doc, i) => (
-                          <div 
-                            key={i} 
-                            style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
-                            onClick={() => setPreviewFile(doc)}
-                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface)')}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                              <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
-                                <Icon name="file-text" size={20} />
-                              </div>
-                              <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
-                                <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
-                                <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
-                                  <span>{doc.size}</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Applicable Tags</h3>
-                      <div style={{ 
-                        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
-                        padding: '12px 16px', border: '1px solid var(--app-color-border)', 
-                        borderRadius: 'var(--app-radius-sm)', backgroundColor: 'var(--app-color-surface)'
-                      }}>
-                        {['Cloud Migration', 'Security', 'Azure', 'Infrastructure', 'Modernization'].map(tag => (
-                          <Badge key={tag} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', borderRadius: '24px', border: 'none', fontWeight: 500 }}>
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
+              <Card title={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '15px' }}>Supporting Documents</div>
                   </div>
-                </Card>
-              </div>
-              
+                </div>
+              }>
+                <div className="supporting-docs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                  {[
+                    { name: 'Architecture_Diagrams.png', size: '1.8 MB' },
+                    { name: 'Security_Compliance_Guidelines.pdf', size: '3.4 MB' },
+                    { name: 'Vendor_Q_and_A.docx', size: '0.9 MB' },
+                    { name: 'Legacy_API_Specs.json', size: '2.1 MB' }
+                  ].map((doc, i) => (
+                    <div 
+                      key={i} 
+                      className="file-item"
+                      style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
+                      onClick={() => setPreviewFile(doc)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+                          <Icon name="file-text" size={20} />
+                        </div>
+                        <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+                          <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                          <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+                            <span>{doc.size}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <Card title={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '15px' }}>Applicable Tags</div>
+                  </div>
+                </div>
+              }>
+                <div style={{ 
+                  display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
+                  padding: '12px 16px', border: '1px solid var(--app-color-border)', 
+                  borderRadius: 'var(--app-radius-sm)', backgroundColor: 'var(--app-color-surface)'
+                }}>
+                  {['Cloud Migration', 'Security', 'Azure', 'Infrastructure', 'Modernization'].map(tag => (
+                    <Badge key={tag} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', borderRadius: '24px', border: 'none', fontWeight: 500 }}>
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+
             </div>
           </div>
         )}
@@ -366,28 +436,27 @@ export function SOWDraft() {
           zIndex: 1000
         }} onClick={() => setIsShareModalOpen(false)}>
           <div style={{
-            width: '100%', maxWidth: '560px',
+            width: 'min(500px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
-            borderRadius: '12px',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.1)',
-            display: 'flex', flexDirection: 'column'
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ padding: '24px', borderBottom: '1px solid var(--app-color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '4px' }}>Share SOW Draft</h2>
-                <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)' }}>Search and select team members to share this draft for review.</p>
+            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ 
+                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0ea5e9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
+              }}>
+                <Icon name="share-2" size={24} />
               </div>
-              <button 
-                onClick={() => setIsShareModalOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--app-color-text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Icon name="x" size={20} />
-              </button>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Share</h2>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>Search and select team members to share this draft for review.</p>
             </div>
             
             {/* Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Recipient Search */}
               <div>
@@ -494,13 +563,13 @@ export function SOWDraft() {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--app-color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <Button variant="ghost" onClick={() => setIsShareModalOpen(false)}>Cancel</Button>
-              <Button variant="accent" onClick={handleShareSubmit} disabled={selectedRecipients.length === 0 || isSharing}>
+            <div style={{ padding: '0 32px 32px', display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+              <Button variant="ghost" onClick={() => setIsShareModalOpen(false)} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>Cancel</Button>
+              <Button variant="accent" onClick={handleShareSubmit} disabled={selectedRecipients.length === 0 || isSharing} style={{ flex: 1, justifyContent: 'center', padding: '10px 0' }}>
                 {isSharing ? (
                   <><Icon name="loader" size={16} className="icon-spin" /> Sharing...</>
                 ) : (
-                  <>Share Draft</>
+                  <>Share</>
                 )}
               </Button>
             </div>
@@ -508,13 +577,30 @@ export function SOWDraft() {
         </div>
       )}
 
-      {/* Share Toast Modal */}
-      <AlertModal 
-        isOpen={showShareToast}
-        onClose={() => setShowShareToast(false)}
-        title="SOW draft shared successfully"
-        type="success"
-      />
+      {/* Share Toast */}
+      {showShareToast && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          backgroundColor: 'var(--app-color-surface)',
+          border: '1px solid var(--app-color-border)',
+          borderRadius: 'var(--app-radius-md)',
+          padding: '12px 16px',
+          boxShadow: 'var(--app-shadow-soft)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 2000,
+          animation: 'slideInRight 0.3s ease-out',
+          color: 'var(--app-color-text)',
+          fontSize: '14px',
+          fontWeight: 500
+        }}>
+          <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
+          SOW draft shared successfully
+        </div>
+      )}
 
       {/* Export Toast Modal */}
       <AlertModal 
@@ -523,6 +609,13 @@ export function SOWDraft() {
         title={exportToastMessage}
         type="success"
       />
+
+      <style>{`
+        @keyframes slideInRight {
+          from { opacity: 0; transform: translateX(40px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
 
       {/* AI Processing Modal */}
       {(isProcessing || isFadingOut) && (
@@ -537,40 +630,44 @@ export function SOWDraft() {
           pointerEvents: 'auto'
         }}>
           <div style={{
-            width: 'min(480px, calc(100vw - 48px))',
+            width: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
-            padding: '24px 32px',
+            padding: '20px 24px',
             display: 'flex', flexDirection: 'column',
             transform: isFadingOut ? 'scale(0.95)' : 'scale(1)',
-            transition: 'transform 0.4s ease'
+            transition: 'transform 0.4s ease',
+            overflow: 'hidden'
           }}>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <Icon name="loader" size={24} className="icon-spin" />
+            <div key={currentProcessingStep === 0 ? "upload" : "gen"} className="fade-in-content" style={{ textAlign: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                <Icon name={currentProcessingStep === 0 ? "upload-cloud" : "loader"} size={20} className={currentProcessingStep === 0 ? "icon-bounce" : "icon-spin"} />
               </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Generating Scope of Work</h2>
-              <p style={{ color: 'var(--app-color-text-muted)', fontSize: '14px', lineHeight: '1.5', margin: 0 }}>
-                Your RFP has been uploaded successfully.<br/>
-                Our AI is analysing the uploaded documents and preparing your first draft.
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '6px' }}>
+                {currentProcessingStep === 0 ? 'Uploading RFP Document' : 'Generating Scope of Work'}
+              </h2>
+              <p style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', lineHeight: '1.4', margin: 0 }}>
+                {currentProcessingStep === 0 
+                  ? 'Please wait while we securely upload and process your files.' 
+                  : 'Our AI is analysing the uploaded documents and preparing your first draft.'}
               </p>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: 'var(--app-color-text-muted)' }}>
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px', color: 'var(--app-color-text-muted)' }}>
                 <span style={{ fontWeight: 500 }}>Overall Progress</span>
                 <span style={{ fontWeight: 600, color: 'var(--app-color-primary)' }}>{Math.round(processingProgress)}%</span>
               </div>
               <div style={{ height: '6px', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '3px', overflow: 'hidden' }}>
                 <div style={{ height: '100%', backgroundColor: 'var(--app-color-accent)', width: `${processingProgress}%`, transition: 'width 0.1s linear' }} />
               </div>
-              <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '8px' }}>
-                Estimated remaining time: {Math.max(0, Math.ceil(12 - (processingProgress / 100 * 12)))}s
+              <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--app-color-text-muted)', marginTop: '6px' }}>
+                Estimated remaining time: {Math.max(0, Math.ceil(14 - (processingProgress / 100 * 14)))}s
               </div>
             </div>
 
-            <div style={{ backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+            <div style={{ backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px' }}>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {processingStages.map((stage, idx) => {
                   const isCompleted = idx < currentProcessingStep || processingProgress >= 100;
@@ -592,7 +689,7 @@ export function SOWDraft() {
               </ul>
             </div>
 
-            <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--app-color-text-muted)', borderTop: '1px solid var(--app-color-border)', paddingTop: '16px', marginTop: 'auto' }}>
+            <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--app-color-text-muted)', borderTop: '1px solid var(--app-color-border)', paddingTop: '12px', marginTop: 'auto' }}>
               Please wait while we generate your Scope of Work.<br/>
               Do not close this window.
             </div>
@@ -604,6 +701,20 @@ export function SOWDraft() {
         @keyframes slideInRight {
           from { opacity: 0; transform: translateX(40px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounceIcon {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .icon-bounce {
+          animation: bounceIcon 1s infinite;
+        }
+        @keyframes fadeInContent {
+          from { opacity: 0; transform: translateY(4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in-content {
+          animation: fadeInContent 0.4s ease-out;
         }
       `}</style>
       {/* Preview Modal */}

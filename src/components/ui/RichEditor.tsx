@@ -11,8 +11,6 @@ interface RichEditorProps {
 
 export function RichEditor({ tocItems, activeSectionIndex, isGenerating, children, onSectionChange }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const [zoom, setZoom] = useState<number>(100);
-  const [isFullWidth, setIsFullWidth] = useState<boolean>(false);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
   const [contentHtml, setContentHtml] = useState<string>(() => {
@@ -126,7 +124,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
           html += `<p style="margin-bottom: 16px; line-height: 1.6; color: var(--app-color-text);">This is auto-generated detailed content for the <strong>${item}</strong> section based on the extracted requirements from your RFP document. Our AI analysis indicates that this section requires further manual review to align perfectly with your internal compliance standards. Please review and modify as needed to ensure it meets your exact specifications.</p>`;
           break;
       }
-      html += '</div><br/>';
+      html += '</div>';
       return html;
     }).join('\n');
   });
@@ -142,8 +140,6 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
 
   // Scroll to section when TOC item is clicked
   useEffect(() => {
-    // Add an IntersectionObserver to detect which section is currently in view
-    // so we can update the active TOC item.
     if (!onSectionChange) return;
     
     const observer = new IntersectionObserver((entries) => {
@@ -157,8 +153,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         }
       });
     }, {
-      root: null, // viewport or page-level scroll container
-      rootMargin: '-150px 0px -50% 0px', // Trigger when section hits the upper half of screen below header
+      root: null,
+      rootMargin: '-150px 0px -50% 0px',
       threshold: 0
     });
 
@@ -169,26 +165,6 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
 
     return () => observer.disconnect();
   }, [tocItems.length, onSectionChange]);
-
-  useEffect(() => {
-    if (activeSectionIndex >= 0 && activeSectionIndex < tocItems.length) {
-      const sectionElement = document.getElementById(`sow-section-${activeSectionIndex}`);
-      const scrollArea = document.getElementById('sow-editor-scroll-area');
-      if (sectionElement && scrollArea) {
-        const containerRect = scrollArea.getBoundingClientRect();
-        const sectionRect = sectionElement.getBoundingClientRect();
-        
-        // Offset for spacing
-        const offset = 24; 
-        const scrollTop = scrollArea.scrollTop + (sectionRect.top - containerRect.top) - offset;
-        
-        scrollArea.scrollTo({
-          top: scrollTop,
-          behavior: 'smooth'
-        });
-      }
-    }
-  }, [activeSectionIndex, isGenerating, tocItems.length]);
 
   const handleContentChange = () => {
     if (editorRef.current && !isGenerating) {
@@ -213,11 +189,6 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
 
   const execCmd = (command: string, value: string | undefined = undefined) => {
     if (isGenerating) return;
-    
-    if (command === 'toggleFullWidth') {
-      setIsFullWidth(!isFullWidth);
-      return;
-    }
 
     if (command === 'fontSize') {
       if (!value) return;
@@ -282,20 +253,9 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
       {/* Toolbar */}
       <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
         
-        <select 
-          className="toolbar-select"
-          value={zoom}
-          onChange={(e) => setZoom(Number(e.target.value))}
-          disabled={isGenerating}
-          title="Zoom"
-        >
-          <option value={50}>50%</option>
-          <option value={75}>75%</option>
-          <option value={100}>100%</option>
-          <option value={125}>125%</option>
-          <option value={150}>150%</option>
-        </select>
-        
+        <ToolbarButton icon="undo" command="undo" title="Undo" />
+        <ToolbarButton icon="redo" command="redo" title="Redo" />
+
         <div className="toolbar-separator" />
 
         <select 
@@ -342,6 +302,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         <ToolbarButton icon="italic" command="italic" title="Italic" isActive={activeFormats['italic']} />
         <ToolbarButton icon="underline" command="underline" title="Underline" isActive={activeFormats['underline']} />
         <ToolbarButton icon="strikethrough" command="strikeThrough" title="Strikethrough" isActive={activeFormats['strikeThrough']} />
+        <ToolbarButton icon="quote" command="formatBlock" value="BLOCKQUOTE" title="Blockquote" />
+        <ToolbarButton icon="code" command="formatBlock" value="PRE" title="Code Block" />
         
         <div className="toolbar-separator" />
 
@@ -368,10 +330,6 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         <div className="toolbar-separator" />
         
         <ToolbarButton icon="remove-formatting" command="clearFormat" title="Clear Formatting" />
-        
-        <div className="toolbar-separator" />
-        
-        <ToolbarButton icon={isFullWidth ? 'minimize' : 'maximize'} command="toggleFullWidth" title={isFullWidth ? "Collapse View" : "Full Width"} />
 
       </div>
 
@@ -386,32 +344,21 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         {/* Document Card */}
         <div style={{
           margin: '0 auto 64px auto',
+          maxWidth: '850px',
           width: '100%',
-          maxWidth: isFullWidth ? '100%' : '900px',
-          backgroundColor: '#fff',
-          boxShadow: 'var(--app-shadow-soft)',
-          border: '1px solid var(--app-color-border)',
-          borderRadius: 'var(--app-radius-md)',
-          padding: '32px 64px 96px 64px',
-          transition: 'max-width 0.3s ease',
-          height: 'auto',
-          minHeight: '100%',
-          overflow: 'visible',
-          display: 'block'
+          backgroundColor: 'var(--app-color-surface)',
+          minHeight: '1056px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          borderRadius: '4px',
+          padding: '64px 80px',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          <div style={{ 
-            transform: `scale(${zoom / 100})`,
-            transformOrigin: 'top left',
-            transition: 'transform 0.2s',
-            height: 'auto',
-            minHeight: '100%',
-            overflow: 'visible',
-            display: 'block'
-          }}>
           {isGenerating ? (
             children
           ) : (
             <div 
+              className="smooth-enter"
               ref={editorRef}
               contentEditable={!isGenerating}
               onInput={handleContentChange}
@@ -428,7 +375,6 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
               }}
             />
           )}
-          </div>
         </div>
         
         {/* Bottom spacer to prevent margin collapse and ensure scrolling gap */}
