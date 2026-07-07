@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Icon } from './Icon';
 
 interface FileUploadProps {
@@ -17,6 +17,79 @@ interface FileUploadProps {
   disabledMessage?: string;
   onDisabledClick?: () => void;
   statusText?: string;
+}
+
+function FileItemCard({ file, index, onRemove, onPreview }: { file: File, index: number, onRemove?: (index: number) => void, onPreview?: (index: number) => void }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const duration = 1500; // 1.5s
+    const intervalTime = 50;
+    const steps = duration / intervalTime;
+    const increment = 100 / steps;
+    
+    const timer = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) {
+          clearInterval(timer);
+          return 100;
+        }
+        return Math.min(100, p + increment);
+      });
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const isComplete = progress >= 100;
+
+  return (
+    <div 
+      className="file-item" 
+      onClick={() => isComplete && onPreview?.(index)}
+      style={{ 
+        cursor: isComplete && onPreview ? 'pointer' : 'default',
+        margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)' 
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+        <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+          <Icon name="file-text" size={20} />
+        </div>
+        <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+          <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
+          <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+            {isComplete ? (
+              <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
+            ) : (
+              <span>Uploading... {Math.round(progress)}%</span>
+            )}
+          </div>
+        </div>
+        {isComplete && onRemove && (
+          <div style={{ marginLeft: '12px' }}>
+            <button 
+              className="icon-button" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(index);
+              }}
+              aria-label="Remove file"
+              title="Remove file"
+            >
+              <Icon name="trash" size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+      
+      {!isComplete && (
+        <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '2px', marginTop: '12px', overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: `${progress}%`, backgroundColor: 'var(--app-color-accent)', transition: 'width 0.1s linear' }} />
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function FileUpload({ 
@@ -189,56 +262,7 @@ export function FileUpload({
           </h3>
           <div className="file-upload__grid">
             {files.map((f, i) => (
-              <div 
-                key={i} 
-                className="file-item" 
-                onClick={() => onFilePreview?.(i)}
-                style={{ cursor: onFilePreview ? 'pointer' : 'default', margin: 0 }}
-              >
-                <div className="file-item__icon-wrapper">
-                  <Icon name="file-text" size={20} />
-                </div>
-                <div className="file-item__main">
-                  <div className="file-item__name">{f.name}</div>
-                  <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span>{(f.size / 1024 / 1024).toFixed(2)} MB</span>
-                    {statusText && (
-                      <>
-                        <span>•</span>
-                        <span style={{ color: 'var(--app-color-success)' }}>{statusText}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {onFilePreview && (
-                    <button 
-                      className="icon-button" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onFilePreview(i);
-                      }}
-                      aria-label="Preview file"
-                      title="Preview file"
-                    >
-                      <Icon name="eye" size={16} />
-                    </button>
-                  )}
-                  {onFileRemove && (
-                    <button 
-                      className="icon-button" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onFileRemove(i);
-                      }}
-                      aria-label="Remove file"
-                      title="Remove file"
-                    >
-                      <Icon name="trash" size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <FileItemCard key={`${f.name}-${f.size}-${i}`} file={f} index={i} onRemove={onFileRemove} onPreview={onFilePreview} />
             ))}
           </div>
         </div>

@@ -31,10 +31,10 @@ export function Layout() {
         collapsed={collapsed} 
         activeItem={activeScreen}
         onItemClick={setActiveScreen}
+        onToggle={toggleSidebar}
       />
       <main className="app-main">
         <TopNavigation 
-          onToggleSidebar={toggleSidebar} 
           title={activeScreen === 'sow-draft' ? 'SOW-2026-001' : 'Upload RFP'} 
           breadcrumb={activeScreen === 'sow-draft' ? 'Review' : undefined}
         />

@@ -30,24 +30,27 @@ interface LeftNavigationProps {
   collapsed: boolean;
   activeItem?: ScreenId;
   onItemClick?: (id: ScreenId) => void;
+  onToggle?: () => void;
 }
 
-export function LeftNavigation({ collapsed, activeItem, onItemClick }: LeftNavigationProps) {
+export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle }: LeftNavigationProps) {
   return (
     <aside className="app-sidebar" data-collapsed={collapsed}>
-      <div className="app-sidebar__brand" style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+      <div className="app-sidebar__brand">
         <img 
           src="/Logo.png" 
           alt="M42 Logo" 
-          style={{ 
-            width: '100%', 
-            maxWidth: collapsed ? '40px' : '64px', 
-            height: 'auto',
-            objectFit: 'contain',
-            objectPosition: collapsed ? 'center' : 'left',
-            transition: 'all 0.2s ease-in-out'
-          }} 
+          className="app-sidebar__logo-img"
         />
+        {onToggle && (
+          <button 
+            className="app-sidebar__collapse-toggle" 
+            onClick={onToggle}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <Icon name={collapsed ? "chevron-right" : "chevron-left"} size={14} />
+          </button>
+        )}
       </div>
       
       <div className="app-sidebar__content">

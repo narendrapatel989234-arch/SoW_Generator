@@ -12,6 +12,7 @@ interface RichEditorProps {
 export function RichEditor({ tocItems, activeSectionIndex, isGenerating, children, onSectionChange }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState<number>(100);
+  const [isFullWidth, setIsFullWidth] = useState<boolean>(false);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
   const [contentHtml, setContentHtml] = useState<string>(() => {
@@ -213,6 +214,28 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
   const execCmd = (command: string, value: string | undefined = undefined) => {
     if (isGenerating) return;
     
+    if (command === 'toggleFullWidth') {
+      setIsFullWidth(!isFullWidth);
+      return;
+    }
+
+    if (command === 'fontSize') {
+      if (!value) return;
+      document.execCommand('fontSize', false, '7');
+      const fontElements = editorRef.current?.querySelectorAll('font[size="7"]');
+      if (fontElements) {
+        fontElements.forEach(el => {
+          el.removeAttribute('size');
+          el.style.fontSize = `${value}px`;
+        });
+      }
+      updateActiveFormats();
+      if (editorRef.current) {
+        editorRef.current.focus();
+      }
+      return;
+    }
+
     if (command === 'createLink') {
       const url = prompt('Enter link URL:');
       if (url) {
@@ -242,6 +265,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
     <button 
       title={title}
       className={`toolbar-button ${isActive ? 'active' : ''}`}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={(e) => {
         e.preventDefault();
         execCmd(command, value);
@@ -253,20 +277,17 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'auto', width: '100%', backgroundColor: 'transparent', position: 'relative', minHeight: '900px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'transparent', position: 'relative', containerType: 'inline-size' }}>
       
       {/* Toolbar */}
-      <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`}>
-        <ToolbarButton icon="corner-up-left" command="undo" title="Undo" />
-        <ToolbarButton icon="corner-up-right" command="redo" title="Redo" />
-        
-        <div className="toolbar-separator" />
+      <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
         
         <select 
           className="toolbar-select"
           value={zoom}
           onChange={(e) => setZoom(Number(e.target.value))}
           disabled={isGenerating}
+          title="Zoom"
         >
           <option value={50}>50%</option>
           <option value={75}>75%</option>
@@ -274,9 +295,22 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
           <option value={125}>125%</option>
           <option value={150}>150%</option>
         </select>
-        <button className="toolbar-button" onClick={() => setZoom(z => Math.min(200, z + 25))} disabled={isGenerating}><Icon name="zoom-in" size={16} /></button>
-        <button className="toolbar-button" onClick={() => setZoom(z => Math.max(50, z - 25))} disabled={isGenerating}><Icon name="zoom-out" size={16} /></button>
         
+        <div className="toolbar-separator" />
+
+        <select 
+          className="toolbar-select"
+          onChange={(e) => execCmd('fontSize', e.target.value)}
+          defaultValue="15"
+          disabled={isGenerating}
+          title="Font Size"
+        >
+          <option value="15" disabled hidden>Size</option>
+          {[8, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72].map(size => (
+            <option key={size} value={size}>{size}</option>
+          ))}
+        </select>
+
         <div className="toolbar-separator" />
         
         <select 
@@ -284,31 +318,37 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
           onChange={(e) => execCmd('formatBlock', e.target.value)}
           defaultValue="P"
           disabled={isGenerating}
+          title="Paragraph Style"
         >
           <option value="P">Normal</option>
           <option value="H1">Heading 1</option>
           <option value="H2">Heading 2</option>
           <option value="H3">Heading 3</option>
+          <option value="H4">Heading 4</option>
+          <option value="H5">Heading 5</option>
+          <option value="H6">Heading 6</option>
         </select>
 
         <div className="toolbar-separator" />
         
         <ToolbarButton icon="list" command="insertUnorderedList" title="Bullet List" isActive={activeFormats['insertUnorderedList']} />
         <ToolbarButton icon="list-ordered" command="insertOrderedList" title="Numbered List" isActive={activeFormats['insertOrderedList']} />
+        <ToolbarButton icon="indent" command="indent" title="Indent" />
+        <ToolbarButton icon="outdent" command="outdent" title="Outdent" />
         
         <div className="toolbar-separator" />
 
         <ToolbarButton icon="bold" command="bold" title="Bold" isActive={activeFormats['bold']} />
         <ToolbarButton icon="italic" command="italic" title="Italic" isActive={activeFormats['italic']} />
-        <ToolbarButton icon="strikethrough" command="strikeThrough" title="Strikethrough" isActive={activeFormats['strikeThrough']} />
         <ToolbarButton icon="underline" command="underline" title="Underline" isActive={activeFormats['underline']} />
+        <ToolbarButton icon="strikethrough" command="strikeThrough" title="Strikethrough" isActive={activeFormats['strikeThrough']} />
         
         <div className="toolbar-separator" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 8px' }} title="Text Color">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 4px' }} title="Text Color">
           <input type="color" className="toolbar-color-picker" defaultValue="#1E293B" onChange={(e) => execCmd('foreColor', e.target.value)} disabled={isGenerating} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 8px' }} title="Highlight Color">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '0 4px' }} title="Highlight Color">
           <input type="color" className="toolbar-color-picker" defaultValue="#FFFFFF" onChange={(e) => execCmd('hiliteColor', e.target.value)} disabled={isGenerating} />
         </div>
 
@@ -327,30 +367,46 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         
         <div className="toolbar-separator" />
         
-        <ToolbarButton icon="x-circle" command="clearFormat" title="Clear Formatting" />
+        <ToolbarButton icon="remove-formatting" command="clearFormat" title="Clear Formatting" />
         
+        <div className="toolbar-separator" />
+        
+        <ToolbarButton icon={isFullWidth ? 'minimize' : 'maximize'} command="toggleFullWidth" title={isFullWidth ? "Collapse View" : "Full Width"} />
 
       </div>
 
       {/* Editor Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'transparent', overflow: 'hidden', paddingTop: '24px', paddingBottom: '64px', minHeight: 0 }}>
-        <div id="sow-editor-scroll-area" style={{ 
-          width: '100%', 
-          maxWidth: '1200px', 
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
+      <div id="sow-editor-scroll-area" style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        backgroundColor: 'var(--app-color-surface-muted)',
+        padding: '32px 24px 64px 24px',
+        display: 'block'
+      }}>
+        {/* Document Card */}
+        <div style={{
+          margin: '0 auto 64px auto',
+          width: '100%',
+          maxWidth: isFullWidth ? '100%' : '900px',
           backgroundColor: '#fff',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--app-shadow-soft)',
           border: '1px solid var(--app-color-border)',
-          borderRadius: '12px'
+          borderRadius: 'var(--app-radius-md)',
+          padding: '32px 64px 96px 64px',
+          transition: 'max-width 0.3s ease',
+          height: 'auto',
+          minHeight: '100%',
+          overflow: 'visible',
+          display: 'block'
         }}>
           <div style={{ 
-            padding: '48px',
             transform: `scale(${zoom / 100})`,
-            transformOrigin: 'top center',
+            transformOrigin: 'top left',
             transition: 'transform 0.2s',
-            minHeight: '100%'
+            height: 'auto',
+            minHeight: '100%',
+            overflow: 'visible',
+            display: 'block'
           }}>
           {isGenerating ? (
             children
@@ -365,12 +421,18 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
               style={{
                 outline: 'none',
                 fontSize: '15px',
-                minHeight: '400px'
+                height: 'auto',
+                minHeight: '100%',
+                overflow: 'visible',
+                display: 'block'
               }}
             />
           )}
           </div>
         </div>
+        
+        {/* Bottom spacer to prevent margin collapse and ensure scrolling gap */}
+        <div style={{ height: '64px', width: '100%' }}></div>
       </div>
     </div>
   );

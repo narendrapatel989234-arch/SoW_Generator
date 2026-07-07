@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { RichEditor } from '../components/ui/RichEditor';
+import { AlertModal } from '../components/ui/AlertModal';
+import { Badge } from '../components/ui/Badge';
+import { Card } from '../components/ui/Card';
 
 const tocItems = [
   'Executive Summary',
@@ -93,6 +96,9 @@ export function SOWDraft() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportToastMessage, setExportToastMessage] = useState('');
 
+  // Preview State
+  const [previewFile, setPreviewFile] = useState<{name: string, size?: string} | null>(null);
+
   const filteredSuggestions = mockTeamMembers.filter(member => 
     (member.name.toLowerCase().includes(recipientSearch.toLowerCase()) || 
      member.role.toLowerCase().includes(recipientSearch.toLowerCase())) &&
@@ -116,14 +122,23 @@ export function SOWDraft() {
 
 
   useEffect(() => {
+    if (isShareModalOpen || isProcessing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isShareModalOpen) {
         setIsShareModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isShareModalOpen]);
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isShareModalOpen, isProcessing]);
 
   return (
     <>
@@ -190,7 +205,7 @@ export function SOWDraft() {
                     <button 
                       onClick={() => {
                         setShowExportMenu(false);
-                        setExportToastMessage('TXT export started.');
+                        setExportToastMessage('DOCX export started.');
                         setTimeout(() => setExportToastMessage(''), 3000);
                       }}
                       style={{
@@ -201,7 +216,7 @@ export function SOWDraft() {
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
-                      <Icon name="file" size={16} /> Export as TXT
+                      <Icon name="file" size={16} /> Export as DOCX
                     </button>
                   </div>
                 </>
@@ -210,13 +225,18 @@ export function SOWDraft() {
         </div>
       </div>
 
-      <div className="sow-workspace">
+      <div 
+        className="sow-workspace"
+        style={activeTab === 'rfp' ? { display: 'block', height: 'auto', overflow: 'visible' } : {}}
+      >
         {activeTab === 'sow' && (
           <>
             {/* TOC Sidebar */}
-            <div className="sow-toc-sidebar">
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--app-color-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>Table of Contents</h3>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="sow-toc-sidebar" style={{ paddingTop: 0 }}>
+              <div style={{ height: '54px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Table of Contents</h3>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {tocItems.map((item, idx) => {
                   return (
                     <li key={idx} 
@@ -232,7 +252,7 @@ export function SOWDraft() {
             </div>
 
             {/* Main Content Area */}
-            <div className="sow-main-content-wrapper" style={{ position: 'relative', height: '100%', minHeight: '900px' }}>
+            <div className="sow-main-content-wrapper" style={{ position: 'relative', height: '100%' }}>
               <div className="sow-main-content" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
                 <RichEditor 
                   tocItems={tocItems} 
@@ -247,77 +267,91 @@ export function SOWDraft() {
         )}
         
         {activeTab === 'rfp' && (
-          <div style={{ padding: '32px', width: '100%', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '32px', gridColumn: '1 / -1' }}>
-             
-             {/* 1. Primary RFP */}
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-               <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)' }}>RFP Document</h3>
-               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)', borderRadius: '8px', width: '100%' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                   <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-primary-soft)', color: 'var(--app-color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}>
-                     <Icon name="file-text" size={20} />
-                   </div>
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                     <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--app-color-text)' }}>Project_Requirements_v2.pdf</div>
-                     <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                       <span>4.2 MB</span>
-                       <span>•</span>
-                       <span style={{ color: 'var(--app-color-success)' }}>Uploaded Just now</span>
-                     </div>
-                   </div>
-                 </div>
-                 <Button variant="ghost" style={{ padding: '8px' }}>
-                   <Icon name="external-link" size={16} />
-                 </Button>
-               </div>
-             </div>
+          <div style={{ padding: '32px 32px 80px 32px', width: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
+              
+              {/* Primary RFP (No Document Info) */}
+              <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>RFP Document</h3>
+                  <div 
+                    style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
+                    onClick={() => setPreviewFile({ name: 'Project_Requirements_v2.pdf', size: '4.2 MB' })}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface)')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+                        <Icon name="file-text" size={20} />
+                      </div>
+                      <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Project_Requirements_v2.pdf</div>
+                        <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+                          <span>4.2 MB</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-             {/* 2. Document Info */}
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-               <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)' }}>Document Info</h3>
-               <div style={{ backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)', borderRadius: '8px', padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                 <div><div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '4px' }}>Title</div><div style={{ fontSize: '14px', fontWeight: 500 }}>Global Infrastructure Modernization</div></div>
-                 <div><div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '4px' }}>Client</div><div style={{ fontSize: '14px', fontWeight: 500 }}>Acme Corp</div></div>
-                 <div><div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '4px' }}>Format</div><div style={{ fontSize: '14px', fontWeight: 500 }}>PDF Document</div></div>
-                 <div><div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '4px' }}>Total Files</div><div style={{ fontSize: '14px', fontWeight: 500 }}>2 Documents</div></div>
-               </div>
-             </div>
-             
-             {/* 3. Supporting Documents */}
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-               <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)' }}>Supporting Documents</h3>
-               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)', borderRadius: '8px', width: '100%' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                   <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-surface-muted)', color: 'var(--app-color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}>
-                     <Icon name="paperclip" size={20} />
-                   </div>
-                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                     <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--app-color-text)' }}>Architecture_Diagrams.png</div>
-                     <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                       <span>1.8 MB</span>
-                       <span>•</span>
-                       <span>Supporting</span>
-                     </div>
-                   </div>
-                 </div>
-                 <Button variant="ghost" style={{ padding: '8px' }}>
-                   <Icon name="external-link" size={16} />
-                 </Button>
-               </div>
-             </div>
+              {/* Supporting Docs & Tags inside one Card */}
+              <div>
+                <Card>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Supporting Documents</h3>
+                      <div className="supporting-docs-grid">
+                        {[
+                          { name: 'Architecture_Diagrams.png', size: '1.8 MB' },
+                          { name: 'Security_Compliance_Guidelines.pdf', size: '3.4 MB' },
+                          { name: 'Vendor_Q_and_A.docx', size: '0.9 MB' },
+                          { name: 'Legacy_API_Specs.json', size: '2.1 MB' }
+                        ].map((doc, i) => (
+                          <div 
+                            key={i} 
+                            style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
+                            onClick={() => setPreviewFile(doc)}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface)')}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                              <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+                                <Icon name="file-text" size={20} />
+                              </div>
+                              <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+                                <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                                <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+                                  <span>{doc.size}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-             {/* 4. Tags */}
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-               <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)' }}>Applicable Tags</h3>
-               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '16px', backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)', borderRadius: '8px' }}>
-                 {['Cloud Migration', 'Security', 'Azure', 'Infrastructure', 'Modernization'].map(tag => (
-                   <span key={tag} style={{ backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', fontSize: '13px', fontWeight: 500, padding: '6px 12px', borderRadius: '16px', border: 'none' }}>
-                     {tag}
-                   </span>
-                 ))}
-               </div>
-             </div>
-             
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Applicable Tags</h3>
+                      <div style={{ 
+                        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px',
+                        padding: '12px 16px', border: '1px solid var(--app-color-border)', 
+                        borderRadius: 'var(--app-radius-sm)', backgroundColor: 'var(--app-color-surface)'
+                      }}>
+                        {['Cloud Migration', 'Security', 'Azure', 'Infrastructure', 'Modernization'].map(tag => (
+                          <Badge key={tag} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', borderRadius: '24px', border: 'none', fontWeight: 500 }}>
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    
+                  </div>
+                </Card>
+              </div>
+              
+            </div>
           </div>
         )}
       </div>
@@ -332,7 +366,7 @@ export function SOWDraft() {
           zIndex: 1000
         }} onClick={() => setIsShareModalOpen(false)}>
           <div style={{
-            width: '560px',
+            width: '100%', maxWidth: '560px',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '12px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.1)',
@@ -474,59 +508,21 @@ export function SOWDraft() {
         </div>
       )}
 
-      {/* Share Toast */}
-      {showShareToast && (
-        <div style={{
-          position: 'fixed', top: '24px', right: '24px', width: '380px', maxWidth: 'calc(100vw - 48px)',
-          backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-          borderLeft: '4px solid var(--app-color-success)', boxShadow: '0 10px 24px rgba(0,0,0,0.08)',
-          padding: '16px', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px',
-          zIndex: 1000, animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-        }}>
-          <div style={{ color: 'var(--app-color-success)', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
-            <Icon name="check-circle" size={20} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ color: 'var(--app-color-text)', fontWeight: 600, fontSize: '14px' }}>
-              SOW draft shared successfully
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowShareToast(false)}
-            style={{ background: 'transparent', border: 'none', color: 'var(--app-color-text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}
-            aria-label="Close notification"
-          >
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-      )}
+      {/* Share Toast Modal */}
+      <AlertModal 
+        isOpen={showShareToast}
+        onClose={() => setShowShareToast(false)}
+        title="SOW draft shared successfully"
+        type="success"
+      />
 
-      {/* Export Toast */}
-      {exportToastMessage && (
-        <div style={{
-          position: 'fixed', top: showShareToast ? '90px' : '24px', right: '24px', width: '380px', maxWidth: 'calc(100vw - 48px)',
-          backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-          borderLeft: '4px solid var(--app-color-success)', boxShadow: '0 10px 24px rgba(0,0,0,0.08)',
-          padding: '16px', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px',
-          zIndex: 1000, animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-        }}>
-          <div style={{ color: 'var(--app-color-success)', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
-            <Icon name="check-circle" size={20} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ color: 'var(--app-color-text)', fontWeight: 600, fontSize: '14px' }}>
-              {exportToastMessage}
-            </div>
-          </div>
-          <button 
-            onClick={() => setExportToastMessage('')}
-            style={{ background: 'transparent', border: 'none', color: 'var(--app-color-text-muted)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' }}
-            aria-label="Close notification"
-          >
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-      )}
+      {/* Export Toast Modal */}
+      <AlertModal 
+        isOpen={!!exportToastMessage}
+        onClose={() => setExportToastMessage('')}
+        title={exportToastMessage}
+        type="success"
+      />
 
       {/* AI Processing Modal */}
       {(isProcessing || isFadingOut) && (
@@ -541,17 +537,16 @@ export function SOWDraft() {
           pointerEvents: 'auto'
         }}>
           <div style={{
-            width: 'calc(100% - 32px)',
-            maxWidth: '560px',
+            width: 'min(480px, calc(100vw - 48px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
-            padding: '32px',
+            padding: '24px 32px',
             display: 'flex', flexDirection: 'column',
             transform: isFadingOut ? 'scale(0.95)' : 'scale(1)',
             transition: 'transform 0.4s ease'
           }}>
-            <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <div style={{ width: '48px', height: '48px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                 <Icon name="loader" size={24} className="icon-spin" />
               </div>
@@ -562,7 +557,7 @@ export function SOWDraft() {
               </p>
             </div>
 
-            <div style={{ marginBottom: '24px' }}>
+            <div style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px', color: 'var(--app-color-text-muted)' }}>
                 <span style={{ fontWeight: 500 }}>Overall Progress</span>
                 <span style={{ fontWeight: 600, color: 'var(--app-color-primary)' }}>{Math.round(processingProgress)}%</span>
@@ -575,7 +570,7 @@ export function SOWDraft() {
               </div>
             </div>
 
-            <div style={{ backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
+            <div style={{ backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {processingStages.map((stage, idx) => {
                   const isCompleted = idx < currentProcessingStep || processingProgress >= 100;
@@ -597,7 +592,7 @@ export function SOWDraft() {
               </ul>
             </div>
 
-            <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--app-color-text-muted)', borderTop: '1px solid var(--app-color-border)', paddingTop: '16px' }}>
+            <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--app-color-text-muted)', borderTop: '1px solid var(--app-color-border)', paddingTop: '16px', marginTop: 'auto' }}>
               Please wait while we generate your Scope of Work.<br/>
               Do not close this window.
             </div>
@@ -611,6 +606,88 @@ export function SOWDraft() {
           to { opacity: 1; transform: translateX(0); }
         }
       `}</style>
+      {/* Preview Modal */}
+      {previewFile && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.3)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(2px)'
+        }}
+        onClick={() => setPreviewFile(null)}
+        >
+          <div style={{
+            backgroundColor: 'var(--app-color-surface)',
+            width: '100%',
+            height: '100%',
+            maxWidth: '1200px',
+            maxHeight: '90vh',
+            borderRadius: 'var(--app-radius-md)',
+            border: '1px solid var(--app-color-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--app-shadow-soft)',
+            overflow: 'hidden'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              padding: '16px 24px',
+              borderBottom: '1px solid var(--app-color-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Icon name="file-text" size={24} style={{ color: 'var(--app-color-primary)' }} />
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }} title={previewFile.name}>
+                  {previewFile.name.length > 40 ? previewFile.name.substring(0, 40) + '...' : previewFile.name}
+                </h2>
+              </div>
+              <button 
+                onClick={() => setPreviewFile(null)}
+                className="icon-button"
+                aria-label="Close"
+              >
+                <Icon name="x" size={20} />
+              </button>
+            </div>
+            <div style={{
+              flex: 1,
+              backgroundColor: 'var(--app-color-bg)',
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '24px',
+              overflow: 'auto',
+            }}>
+              <div style={{
+                backgroundColor: 'var(--app-color-surface)',
+                width: '100%',
+                maxWidth: '900px',
+                padding: '64px',
+                boxShadow: 'var(--app-shadow-soft)',
+                color: 'var(--app-color-text)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+                lineHeight: '1.6',
+                minHeight: 'max-content',
+                border: '1px solid var(--app-color-border)'
+              }}>
+                <section>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1e293b' }}>1. Document Content Placeholder</h3>
+                  <p style={{ margin: 0, fontSize: '14px' }}>This is a mock preview of {previewFile.name}. In a real application, the actual document content (PDF, DOCX, etc.) would be rendered here.</p>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
     </>
   );

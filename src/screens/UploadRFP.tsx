@@ -4,6 +4,7 @@ import { FileUpload } from '../components/ui/FileUpload';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Icon } from '../components/ui/Icon';
+import { AlertModal } from '../components/ui/AlertModal';
 
 interface UploadRFPProps {
   onTransitionToDraft?: () => void;
@@ -21,24 +22,34 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [rfpError, setRfpError] = useState('');
   const [supportError, setSupportError] = useState('');
+  const [fileToDelete, setFileToDelete] = useState<{type: 'rfp' | 'support', index: number} | null>(null);
+  const [deleteToast, setDeleteToast] = useState(false);
 
   React.useEffect(() => {
+    if (previewFile || isExtracting) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && previewFile) {
         setPreviewFile(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [previewFile]);
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [previewFile, isExtracting]);
 
   const handleRfpFileSelect = (files: File[]) => {
     setRfpError('');
     if (files.length > 0) setRfpFiles([files[0]]);
   };
   const handleRfpFileRemove = (index: number) => {
-    setRfpError('');
-    setRfpFiles(prev => prev.filter((_, i) => i !== index));
+    setFileToDelete({ type: 'rfp', index });
   };
 
   const handleSupportFileSelect = (files: File[]) => {
@@ -67,8 +78,21 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   };
 
   const handleSupportFileRemove = (index: number) => {
-    setSupportError('');
-    setSupportFiles(prev => prev.filter((_, i) => i !== index));
+    setFileToDelete({ type: 'support', index });
+  };
+
+  const confirmDeleteFile = () => {
+    if (!fileToDelete) return;
+    if (fileToDelete.type === 'rfp') {
+      setRfpError('');
+      setRfpFiles(prev => prev.filter((_, i) => i !== fileToDelete.index));
+    } else {
+      setSupportError('');
+      setSupportFiles(prev => prev.filter((_, i) => i !== fileToDelete.index));
+    }
+    setFileToDelete(null);
+    setDeleteToast(true);
+    setTimeout(() => setDeleteToast(false), 3000);
   };
 
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -116,11 +140,6 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     
     setIsSubmitting(true);
     setShowToast(true);
-    
-    // Show toast for a short duration to let the user read it, then transition
-    setTimeout(() => {
-      onTransitionToDraft?.();
-    }, 1500);
   };
 
   return (
@@ -141,7 +160,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             multiple={false} 
             hint="Drag and drop your file here"
             description="or click to browse"
-            supportedFormats={['PDF', 'DOCX']}
+            supportedFormats={['PDF', 'DOC', 'PPT']}
             maxSize="10MB"
             files={rfpFiles}
             onFileSelect={handleRfpFileSelect}
@@ -149,7 +168,6 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             onFilePreview={(i) => setPreviewFile(rfpFiles[i])}
             disabled={rfpFiles.length >= 1}
             disabledMessage="Only one RFP document can be uploaded. Delete the current file to upload another."
-            statusText="Uploaded"
           />
           {rfpError && (
             <div className="error-text">
@@ -165,7 +183,8 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           )}
         </Card>
 
-        <Card title={
+        <div style={{ opacity: rfpFiles.length === 0 ? 0.5 : 1, pointerEvents: rfpFiles.length === 0 ? 'none' : 'auto', transition: 'all 0.3s ease' }}>
+          <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               Supporting Documents
@@ -181,14 +200,13 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             description="or click to browse"
             maxFiles={5}
             maxSize="10MB"
-            supportedFormats={['PDF', 'DOCX']}
+            supportedFormats={['PDF', 'DOC', 'PPT']}
             files={supportFiles}
             onFileSelect={handleSupportFileSelect}
             onFileRemove={handleSupportFileRemove}
             onFilePreview={(i) => setPreviewFile(supportFiles[i])}
             disabled={supportFiles.length >= 5}
             disabledMessage="Maximum of 5 supporting documents uploaded. Remove an existing document to upload another."
-            statusText="Uploaded"
           />
           {supportError && (
             <div className="error-text">
@@ -196,9 +214,11 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
               {supportError}
             </div>
           )}
-        </Card>
+          </Card>
+        </div>
 
-        <Card title={
+        <div style={{ opacity: rfpFiles.length === 0 ? 0.5 : 1, pointerEvents: rfpFiles.length === 0 ? 'none' : 'auto', transition: 'all 0.3s ease' }}>
+          <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               Applicable Tags
@@ -223,7 +243,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                   backgroundColor: 'var(--app-color-surface)'
                 }}>
                   {tags.map((tag, i) => (
-                    <Badge key={i} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#F0FDF4', color: '#166534', border: 'none' }}>
+                    <Badge key={i} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', borderRadius: '24px', border: 'none', fontWeight: 500 }}>
                       {tag}
                       <button 
                         onClick={() => handleRemoveTag(i)} 
@@ -253,9 +273,9 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                 </div>
                 <Button variant="ghost" onClick={handleExtractTags} disabled={isExtracting || rfpFiles.length === 0} style={{ alignSelf: 'flex-start', border: '1px solid var(--app-color-border)' }}>
                   {isExtracting ? (
-                    <><Icon name="loader" size={16} className="icon-spin" /> Extracting...</>
+                    <><Icon name="loader" size={16} className="icon-spin" style={{ color: 'var(--app-color-primary)' }} /> Extracting...</>
                   ) : (
-                    <>✨ Extract from RFP</>
+                    <><span style={{ color: 'var(--app-color-primary)' }}>✨</span> Extract from RFP</>
                   )}
                 </Button>
               </div>
@@ -263,15 +283,16 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
 
             </div>
           </div>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       <div className="sticky-bottom-bar">
         <div style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', marginRight: 'auto' }}>
           Submit will be enabled once RFP is uploaded
         </div>
-        <Button variant="ghost" onClick={handleClear} disabled={isSubmitting} style={{ color: 'var(--app-color-text)', border: '1px solid var(--app-color-border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Icon name="x" size={16} /> <span>Clear</span>
+        <Button variant="secondary" onClick={handleClear} disabled={isSubmitting}>
+          <Icon name="x" size={16} /> Clear
         </Button>
         <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || isSubmitting} style={{ padding: '10px 24px' }}>
           {isSubmitting ? (
@@ -282,80 +303,48 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
         </Button>
       </div>
 
-      {showToast && (
-        <div style={{
-          position: 'fixed',
-          top: '24px',
-          right: '24px',
-          width: '380px',
-          maxWidth: 'calc(100vw - 48px)',
-          backgroundColor: 'var(--app-color-surface)',
-          border: '1px solid var(--app-color-border)',
-          borderLeft: '4px solid var(--app-color-success)',
-          boxShadow: '0 10px 24px rgba(0,0,0,0.08)',
-          padding: '16px',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px',
-          zIndex: 1000,
-          animation: 'slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
-        }}>
-          <div style={{ color: 'var(--app-color-success)', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
-            <Icon name="check-circle" size={20} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <div style={{ color: 'var(--app-color-text)', fontWeight: 600, fontSize: '14px' }}>
-              RFP uploaded successfully
-            </div>
-            <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px' }}>
-              Your RFP has been uploaded successfully. We are preparing your Scope of Work.
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowToast(false)}
-            style={{ 
-              background: 'transparent', 
-              border: 'none', 
-              color: 'var(--app-color-text-muted)', 
-              cursor: 'pointer',
-              padding: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '4px'
-            }}
-            aria-label="Close notification"
-          >
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-      )}
+      <AlertModal 
+        isOpen={showToast}
+        onClose={() => {
+          setShowToast(false);
+          onTransitionToDraft?.();
+        }}
+        title="RFP uploaded successfully"
+        description="Your RFP has been uploaded successfully. We are preparing your Scope of Work. Please wait a moment while we process your documents."
+        type="success"
+        hideCloseButton={true}
+        autoCloseDuration={10000}
+      />
 
       {/* Preview Modal */}
       {previewFile && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
+          backgroundColor: 'rgba(13, 33, 44, 0.3)',
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backdropFilter: 'blur(4px)'
-        }}>
+          backdropFilter: 'blur(2px)'
+        }}
+        onClick={() => setPreviewFile(null)}
+        >
           <div style={{
             backgroundColor: 'var(--app-color-surface)',
             width: '100%',
             height: '100%',
             maxWidth: '1200px',
             maxHeight: '90vh',
-            borderRadius: 'var(--app-radius-lg)',
+            borderRadius: 'var(--app-radius-md)',
+            border: '1px solid var(--app-color-border)',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            boxShadow: 'var(--app-shadow-soft)',
             overflow: 'hidden'
-          }}>
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
             <div style={{
               padding: '16px 24px',
               borderBottom: '1px solid var(--app-color-border)',
@@ -371,83 +360,34 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
               </div>
               <button 
                 onClick={() => setPreviewFile(null)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '8px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--app-color-text-muted)'
-                }}
+                className="icon-button"
+                aria-label="Close"
               >
                 <Icon name="x" size={20} />
               </button>
             </div>
             <div style={{
               flex: 1,
-              backgroundColor: '#f1f5f9',
+              backgroundColor: 'var(--app-color-bg)',
               display: 'flex',
-              alignItems: 'center',
-              padding: '32px',
+              justifyContent: 'center',
+              padding: '24px',
               overflow: 'auto',
-              flexDirection: 'column',
-              gap: '24px'
             }}>
               <div style={{
-                backgroundColor: 'white',
+                backgroundColor: 'var(--app-color-surface)',
                 width: '100%',
-                maxWidth: '800px',
-                padding: '24px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                border: '1px solid #e2e8f0',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '16px'
-              }}>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>File Name</div>
-                  <div style={{ fontWeight: 500 }}>{previewFile?.name}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>File Type</div>
-                  <div style={{ fontWeight: 500 }}>{previewFile?.name.split('.').pop()?.toUpperCase() || 'Document'}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>File Size</div>
-                  <div style={{ fontWeight: 500 }}>{previewFile ? (previewFile.size / 1024 / 1024).toFixed(2) : 0} MB</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Status</div>
-                  <div style={{ fontWeight: 500, color: 'var(--app-color-success)' }}>Uploaded</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Upload Time</div>
-                  <div style={{ fontWeight: 500 }}>Just now</div>
-                </div>
-              </div>
-              
-              <div style={{
-                backgroundColor: 'white',
-                width: '100%',
-                maxWidth: '800px',
-                flex: 1,
-                padding: '48px',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                border: '1px solid #e2e8f0',
-                color: '#334155',
+                maxWidth: '900px',
+                padding: '64px',
+                boxShadow: 'var(--app-shadow-soft)',
+                color: 'var(--app-color-text)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '24px',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                minHeight: 'max-content',
+                border: '1px solid var(--app-color-border)'
               }}>
-                <div style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '8px' }}>
-                  <h1 style={{ margin: '0 0 8px 0', fontSize: '24px', color: '#0f172a' }}>RFP Document Preview</h1>
-                  <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Generated Preview for {previewFile.name}</p>
-                </div>
                 
                 <section>
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#1e293b' }}>1. Project Overview</h3>
@@ -496,9 +436,74 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           </div>
         </div>
       )}
-      
+      {/* Delete Confirmation Modal */}
+      {fileToDelete && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.3)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(2px)'
+        }}
+        onClick={() => setFileToDelete(null)}
+        >
+          <div style={{
+            backgroundColor: 'var(--app-color-surface)',
+            width: '100%',
+            maxWidth: '400px',
+            borderRadius: 'var(--app-radius-md)',
+            border: '1px solid var(--app-color-border)',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: 'var(--app-shadow-soft)',
+            overflow: 'hidden',
+            padding: '24px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--app-color-text)' }}>Remove uploaded file?</h3>
+            <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+              This file will be removed from the upload list. You can upload it again if needed.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button variant="ghost" onClick={() => setFileToDelete(null)} style={{ border: '1px solid var(--app-color-border)' }}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={confirmDeleteFile} style={{ backgroundColor: 'var(--app-color-danger)', color: 'white' }}>
+                Remove File
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-
+      {/* Delete Toast */}
+      {deleteToast && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          right: '24px',
+          backgroundColor: 'var(--app-color-surface)',
+          border: '1px solid var(--app-color-border)',
+          borderRadius: 'var(--app-radius-md)',
+          padding: '12px 16px',
+          boxShadow: 'var(--app-shadow-soft)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 2000,
+          animation: 'slideInRight 0.3s ease-out',
+          color: 'var(--app-color-text)',
+          fontSize: '14px',
+          fontWeight: 500
+        }}>
+          <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
+          File removed successfully.
+        </div>
+      )}
       <style>{`
         @keyframes slideInRight {
           from { opacity: 0; transform: translateX(40px); }

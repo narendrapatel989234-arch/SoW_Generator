@@ -3,19 +3,14 @@ import { Icon } from '../ui/Icon';
 import { IconButton } from '../ui/IconButton';
 
 interface TopNavigationProps {
-  onToggleSidebar: () => void;
   title: string;
   breadcrumb?: string;
 }
 
-export function TopNavigation({ onToggleSidebar, title, breadcrumb }: TopNavigationProps) {
+export function TopNavigation({ title, breadcrumb }: TopNavigationProps) {
   return (
     <header className="app-topbar">
       <div className="app-topbar__left">
-        <IconButton label="Toggle sidebar" onClick={onToggleSidebar}>
-          <Icon name="menu" />
-        </IconButton>
-        
         <div className="app-topbar__breadcrumb">
           {breadcrumb && (
             <>

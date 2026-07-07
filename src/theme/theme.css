@@ -32,9 +32,9 @@
   --app-radius-md: 8px;
   --app-font-family: 'Poppins', 'Calibri', system-ui, sans-serif;
   
-  --app-sidebar-width: 256px;
+  --app-sidebar-width: 220px;
   --app-sidebar-collapsed-width: 72px;
-  --app-topbar-height: 64px;
+  --app-topbar-height: 56px;
 }
 
 * {

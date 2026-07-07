@@ -1,13 +1,13 @@
 import React from 'react';
 
 export type IconName = 
-  | 'check' | 'chevron-down' | 'chevron-right' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
+  | 'check' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
   | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
   | 'loader' | 'copy' | 'hard-drive' | 'eye'
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
   | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip'
-  | 'bold' | 'italic' | 'underline' | 'strikethrough';
+  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -24,6 +24,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>; break;
     case 'chevron-right':
       path = <polyline points="9 18 15 12 9 6" />; break;
+    case 'chevron-left':
+      path = <polyline points="15 18 9 12 15 6" />; break;
     case 'chevron-down':
       path = <polyline points="6 9 12 15 18 9" />; break;
     case 'file':
@@ -88,6 +90,10 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></>; break;
     case 'align-justify':
       path = <><line x1="21" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="3" y2="18"></line></>; break;
+    case 'indent':
+      path = <><polyline points="3 8 7 12 3 16"></polyline><line x1="21" y1="12" x2="11" y2="12"></line><line x1="21" y1="6" x2="11" y2="6"></line><line x1="21" y1="18" x2="11" y2="18"></line></>; break;
+    case 'outdent':
+      path = <><polyline points="7 8 3 12 7 16"></polyline><line x1="21" y1="12" x2="11" y2="12"></line><line x1="21" y1="6" x2="11" y2="6"></line><line x1="21" y1="18" x2="11" y2="18"></line></>; break;
     case 'link':
       path = <><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></>; break;
     case 'image':
@@ -108,6 +114,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"></path><line x1="4" y1="21" x2="20" y2="21"></line></>; break;
     case 'strikethrough':
       path = <><line x1="5" y1="12" x2="19" y2="12"></line><path d="M16 6C16 6 14.5 4 12 4C9.5 4 8 6 8 8C8 10 16 14 16 16C16 18 14.5 20 12 20C9.5 20 8 18 8 18"></path></>; break;
+    case 'remove-formatting':
+      path = <><path d="M4 7V4h16v3" /><path d="M5 20h6" /><path d="M13 4 8 20" /><path d="m15 15 5 5" /><path d="m20 15-5 5" /></>; break;
     case 'external-link':
       path = <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></>; break;
     case 'paperclip':
