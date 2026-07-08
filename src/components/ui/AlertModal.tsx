@@ -75,8 +75,8 @@ export function AlertModal({ isOpen, onClose, title, description, type = 'succes
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(13, 33, 44, 0.5)',
-          backdropFilter: 'blur(2px)',
+          backgroundColor: 'rgba(13, 33, 44, 0.4)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -89,20 +89,19 @@ export function AlertModal({ isOpen, onClose, title, description, type = 'succes
         <div 
           style={{
             position: 'relative',
-            width: '100%',
-            maxWidth: '400px',
+            width: 'min(400px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
-            borderRadius: '12px',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.1)',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             textAlign: 'center',
-            padding: '32px 24px 24px',
-            margin: '0 24px', // Ensures it doesn't touch screen edges on mobile
+            padding: '32px 32px 24px',
             animation: 'AlertModalFadeIn 0.3s ease-out',
             transform: isClosing ? 'scale(0.95)' : 'scale(1)',
-            transition: 'transform 0.3s ease-out'
+            transition: 'transform 0.3s ease-out',
+            overflow: 'hidden'
           }}
           onClick={(e) => e.stopPropagation()}
         >

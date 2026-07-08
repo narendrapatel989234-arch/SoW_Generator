@@ -5,11 +5,12 @@ interface RichEditorProps {
   tocItems: string[];
   activeSectionIndex: number;
   isGenerating?: boolean;
+  readOnly?: boolean;
   children?: React.ReactNode;
   onSectionChange?: (index: number) => void;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, children, onSectionChange }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
@@ -197,7 +198,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
       if (fontElements) {
         fontElements.forEach(el => {
           el.removeAttribute('size');
-          el.style.fontSize = `${value}px`;
+          (el as HTMLElement).style.fontSize = `${value}px`;
         });
       }
       updateActiveFormats();
@@ -213,10 +214,23 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         document.execCommand(command, false, url);
       }
     } else if (command === 'insertImage') {
-      const url = prompt('Enter image URL:');
-      if (url) {
-        document.execCommand(command, false, url);
-      }
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (readerEvent) => {
+            if (readerEvent.target?.result) {
+              document.execCommand(command, false, readerEvent.target.result as string);
+              updateActiveFormats();
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+      input.click();
     } else if (command === 'insertTable') {
       const tableHTML = '<table border="1" style="width:100%; border-collapse:collapse; margin-bottom:16px;"><tr><td style="padding:8px;">Row 1, Cell 1</td><td style="padding:8px;">Row 1, Cell 2</td></tr><tr><td style="padding:8px;">Row 2, Cell 1</td><td style="padding:8px;">Row 2, Cell 2</td></tr></table>';
       document.execCommand('insertHTML', false, tableHTML);
@@ -251,7 +265,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'transparent', position: 'relative', containerType: 'inline-size' }}>
       
       {/* Toolbar */}
-      <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
+      <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto', opacity: readOnly ? 0.5 : 1, pointerEvents: readOnly ? 'none' : 'auto' }}>
         
         <ToolbarButton icon="undo" command="undo" title="Undo" />
         <ToolbarButton icon="redo" command="redo" title="Redo" />
@@ -303,7 +317,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
         <ToolbarButton icon="underline" command="underline" title="Underline" isActive={activeFormats['underline']} />
         <ToolbarButton icon="strikethrough" command="strikeThrough" title="Strikethrough" isActive={activeFormats['strikeThrough']} />
         <ToolbarButton icon="quote" command="formatBlock" value="BLOCKQUOTE" title="Blockquote" />
-        <ToolbarButton icon="code" command="formatBlock" value="PRE" title="Code Block" />
+
         
         <div className="toolbar-separator" />
 
@@ -360,7 +374,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, childre
             <div 
               className="smooth-enter"
               ref={editorRef}
-              contentEditable={!isGenerating}
+              contentEditable={!isGenerating && !readOnly}
               onInput={handleContentChange}
               onBlur={handleContentChange}
               onKeyUp={updateActiveFormats}

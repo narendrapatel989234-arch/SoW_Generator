@@ -3,7 +3,7 @@ import { LeftNavigation, type ScreenId } from '../components/reusable/LeftNaviga
 import { TopNavigation } from '../components/reusable/TopNavigation';
 import { UploadRFP } from '../screens/UploadRFP';
 import { SOWDraft } from '../screens/SOWDraft';
-
+import { Review } from '../screens/Review';
 export function Layout() {
   const [collapsed, setCollapsed] = useState(true);
   const [activeScreen, setActiveScreen] = useState<ScreenId>('rfp-to-sow');
@@ -20,6 +20,10 @@ export function Layout() {
         return <UploadRFP onTransitionToDraft={() => setActiveScreen('sow-draft')} />;
       case 'sow-draft':
         return <SOWDraft />;
+      case 'sow-draft-review':
+        return <SOWDraft isReviewMode={true} />;
+      case 'review':
+        return <Review onTransitionToDraft={() => setActiveScreen('sow-draft-review')} />;
       default:
         return <div>Screen not found</div>;
     }
@@ -35,8 +39,8 @@ export function Layout() {
       />
       <main className="app-main">
         <TopNavigation 
-          title={activeScreen === 'sow-draft' ? 'SOW-2026-001' : 'Upload RFP'} 
-          breadcrumb={activeScreen === 'sow-draft' ? 'Review' : undefined}
+          title={activeScreen === 'sow-draft' || activeScreen === 'sow-draft-review' ? 'SOW-2026-001' : activeScreen === 'review' ? 'Reviews' : 'Upload RFP'} 
+          breadcrumb={activeScreen === 'sow-draft' ? 'Review' : activeScreen === 'sow-draft-review' ? 'Draft Review' : undefined}
         />
         <div className="app-content" id="app-content">
           {renderScreen()}

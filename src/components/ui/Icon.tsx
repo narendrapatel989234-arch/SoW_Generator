@@ -1,13 +1,13 @@
 import React from 'react';
 
 export type IconName = 
-  | 'check' | 'chevron-down' | 'chevron-right' | 'chevron-left' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
-  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
+  | 'check' | 'chevron-down' | 'chevron-up' | 'chevron-right' | 'chevron-left' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
+  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'user-plus' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
   | 'loader' | 'copy' | 'hard-drive' | 'eye'
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
-  | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip'
-  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code';
+  | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip' | 'more-horizontal'
+  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -17,6 +17,20 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
   let path = null;
   switch (name) {
+    case 'search':
+      path = (
+        <>
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </>
+      );
+      break;
+    case 'chevron-up':
+      path = <polyline points="18 15 12 9 6 15" />;
+      break;
+    case 'filter':
+      path = <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />;
+      break;
     case 'menu':
       path = <path d="M4 12h16M4 6h16M4 18h16" />; break;
     case 'check':
@@ -52,6 +66,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>; break;
     case 'user':
       path = <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>; break;
+    case 'user-plus':
+      path = <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><line x1="20" y1="8" x2="20" y2="14" /><line x1="23" y1="11" x2="17" y2="11" /></>; break;
     case 'tag':
       path = <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>; break;
     case 'alert-circle':
@@ -132,6 +148,19 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></>; break;
     case 'share':
       path = <><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></>; break;
+    case 'more-horizontal':
+      path = <><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle><circle cx="5" cy="12" r="1.5"></circle></>; break;
+    case 'sparkles':
+      path = (
+        <>
+          <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+          <path d="M5 3v4"/>
+          <path d="M19 17v4"/>
+          <path d="M3 5h4"/>
+          <path d="M17 19h4"/>
+        </>
+      );
+      break;
     default:
       path = <><circle cx="12" cy="12" r="10" /><text x="12" y="16" fontSize="10" textAnchor="middle" fill="currentColor" stroke="none">{name.substring(0,2).toUpperCase()}</text></>;
   }

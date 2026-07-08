@@ -6,6 +6,41 @@ import { Badge } from '../components/ui/Badge';
 import { Icon } from '../components/ui/Icon';
 import { AlertModal } from '../components/ui/AlertModal';
 
+const mockPreviousSOWs = [
+  {
+    id: 'sow-1',
+    name: 'Cloud Migration & Infrastructure Modernization - Phase 1',
+    matchScore: 92,
+    tags: ['Cloud', 'Azure', 'Migration', 'DevOps', 'Data', 'Networking', 'Storage'],
+    relatedTags: ['Infrastructure', 'Security', 'Compliance', 'Audit', 'Governance', 'Operations'],
+    matchTags: ['Cloud', 'Migration']
+  },
+  {
+    id: 'sow-2',
+    name: 'Enterprise Healthcare Platform Azure Migration',
+    matchScore: 85,
+    tags: ['Healthcare', 'Azure', 'Security'],
+    relatedTags: ['Compliance', 'Cloud'],
+    matchTags: ['Healthcare', 'Azure']
+  },
+  {
+    id: 'sow-3',
+    name: 'Data Center Lift and Shift to Azure',
+    matchScore: 78,
+    tags: ['Migration', 'IT Infrastructure', 'Azure'],
+    relatedTags: ['Data Center', 'Lift and Shift'],
+    matchTags: ['Migration', 'Azure']
+  },
+  {
+    id: 'sow-4',
+    name: 'Security & Compliance Audit for Cloud Infrastructure',
+    matchScore: 45,
+    tags: ['Security', 'Compliance', 'Audit'],
+    relatedTags: ['Azure', 'Infrastructure'],
+    matchTags: ['Security']
+  }
+];
+
 interface UploadRFPProps {
   onTransitionToDraft?: () => void;
 }
@@ -23,6 +58,12 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const [supportError, setSupportError] = useState('');
   const [fileToDelete, setFileToDelete] = useState<{type: 'rfp' | 'support', index: number} | null>(null);
   const [deleteToast, setDeleteToast] = useState(false);
+  const [showSOWSection, setShowSOWSection] = useState(false);
+  const [isFindingSOWs, setIsFindingSOWs] = useState(false);
+  const [selectedSOWs, setSelectedSOWs] = useState<string[]>([]);
+  const [tagError, setTagError] = useState('');
+  const [refreshMessage, setRefreshMessage] = useState('');
+  const isInitialMount = React.useRef(true);
 
   React.useEffect(() => {
     if (previewFile || isExtracting) {
@@ -43,9 +84,42 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     };
   }, [previewFile, isExtracting]);
 
+  React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (showSOWSection && tags.length > 0) {
+      setIsFindingSOWs(true);
+      setRefreshMessage('Previous SOWs have been updated to match your new tags.');
+      const timer1 = setTimeout(() => setIsFindingSOWs(false), 1500);
+      const timer2 = setTimeout(() => setRefreshMessage(''), 4000);
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    } else if (tags.length === 0) {
+      setShowSOWSection(false);
+    }
+  }, [tags]);
+
+  const handleExtractTags = () => {
+    setIsExtracting(true);
+    setTimeout(() => {
+      const dummyTags = ['Healthcare', 'Security', 'Cloud', 'Azure', 'Migration', 'IT Infrastructure'];
+      setTags(prev => {
+        const newTags = dummyTags.filter(t => !prev.includes(t));
+        return [...prev, ...newTags];
+      });
+      setIsExtracting(false);
+    }, 1500);
+  };
+
   const handleRfpFileSelect = (files: File[]) => {
     setRfpError('');
-    if (files.length > 0) setRfpFiles([files[0]]);
+    if (files.length > 0) {
+      setRfpFiles([files[0]]);
+    }
   };
   const handleRfpFileRemove = (index: number) => {
     setFileToDelete({ type: 'rfp', index });
@@ -105,19 +179,27 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     }
   };
 
-  const handleExtractTags = () => {
-    setIsExtracting(true);
+
+  const handleFindSOWs = () => {
+    setShowSOWSection(true);
+    setIsFindingSOWs(true);
     setTimeout(() => {
-      const dummyTags = ['Healthcare', 'Security', 'Cloud', 'Azure', 'Migration', 'IT Infrastructure'];
-      setTags(prev => {
-        const newTags = dummyTags.filter(t => !prev.includes(t));
-        return [...prev, ...newTags];
-      });
-      setIsExtracting(false);
-    }, 1500);
+      setIsFindingSOWs(false);
+    }, 2000);
+  };
+
+  const toggleSOWSelection = (id: string) => {
+    setSelectedSOWs(prev => 
+      prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
+    );
   };
 
   const handleRemoveTag = (indexToRemove: number) => {
+    if (tags.length === 1) {
+      setTagError('At least one applicable tag is required.');
+      setTimeout(() => setTagError(''), 3000);
+      return;
+    }
     setTags(tags.filter((_, index) => index !== indexToRemove));
   };
 
@@ -144,7 +226,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   return (
     <>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '100%', paddingBottom: '32px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '100%', paddingBottom: '32px' }}>
         <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -214,10 +296,11 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           )}
           </Card>
 
-        <Card title={
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <Card title={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              Applicable Tags
+              Applicable Tags <span style={{ color: 'var(--app-color-danger)', fontSize: '18px', lineHeight: 1, marginLeft: '-8px' }}>*</span>
             </div>
             <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', fontWeight: 400 }}>
               Add tags manually or extract them from the uploaded RFP to guide SOW generation.
@@ -230,8 +313,8 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                 <div style={{ 
                   flex: 1,
                   display: 'flex', 
-                  flexWrap: 'wrap',
                   alignItems: 'center',
+                  flexWrap: 'wrap',
                   gap: '8px',
                   padding: '12px 16px', 
                   border: '1px solid var(--app-color-border)', 
@@ -239,7 +322,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                   backgroundColor: 'var(--app-color-surface)'
                 }}>
                   {tags.map((tag, i) => (
-                    <Badge key={i} tone="info" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-primary)', borderRadius: '24px', border: 'none', fontWeight: 500 }}>
+                    <span key={i} className="tag-chip" style={{ gap: '6px' }}>
                       {tag}
                       <button 
                         onClick={() => handleRemoveTag(i)} 
@@ -248,7 +331,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                       >
                         <Icon name="x" size={12} />
                       </button>
-                    </Badge>
+                    </span>
                   ))}
                   <input 
                     type="text" 
@@ -267,33 +350,217 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                     }}
                   />
                 </div>
-                <Button variant="ghost" onClick={handleExtractTags} disabled={isExtracting || rfpFiles.length === 0} style={{ alignSelf: 'flex-start', border: '1px solid var(--app-color-border)' }}>
-                  {isExtracting ? (
-                    <><Icon name="loader" size={16} className="icon-spin" style={{ color: 'var(--app-color-primary)' }} /> Extracting...</>
-                  ) : (
-                    <><span style={{ color: 'var(--app-color-primary)' }}>✨</span> Extract from RFP</>
-                  )}
-                </Button>
+                {isExtracting ? (
+                  <div style={{ alignSelf: 'center', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--app-color-primary)', fontSize: '13px', fontWeight: 500 }}>
+                    <Icon name="loader" size={16} className="icon-spin" /> Extracting tags from RFP...
+                  </div>
+                ) : (
+                  <Button 
+                    variant="secondary"
+                    onClick={handleExtractTags}
+                    disabled={rfpFiles.length === 0}
+                    style={{ whiteSpace: 'nowrap', alignSelf: 'flex-start' }}
+                  >
+                    <Icon name="sparkles" size={16} /> Extract from RFP
+                  </Button>
+                )}
               </div>
-
-
+              
+              {tagError && <div style={{ color: 'var(--app-color-danger)', fontSize: '13px', marginTop: '-8px', marginBottom: '8px', fontWeight: 500 }}>{tagError}</div>}
+              
             </div>
           </div>
+        </Card>
+
+        {!showSOWSection && (
+          <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+            <Button 
+              variant="secondary" 
+              onClick={handleFindSOWs} 
+              disabled={tags.length === 0}
+              style={{ backgroundColor: 'white' }}
+            >
+              <Icon name="file-text" size={16} /> View Previous SOWs
+            </Button>
+          </div>
+        )}
+        </div>
+
+        {/* Previous SOW match section */}
+        {showSOWSection && (
+          <Card title={
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                Previous SOW Matches
+              </div>
+              <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', fontWeight: 400 }}>
+                We found similar SOWs based on your applicable tags
+              </div>
+              {refreshMessage && (
+                <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+                  <Icon name="check-circle" size={14} /> {refreshMessage}
+                </div>
+              )}
+            </div>
+          }>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {isFindingSOWs ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {[1, 2, 3].map(i => (
+                    <div key={i} style={{
+                      backgroundColor: 'var(--app-color-surface)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      border: '1px solid var(--app-color-border)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '16px',
+                      animation: 'pulse 1.5s infinite ease-in-out'
+                    }}>
+                      <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', backgroundColor: 'var(--app-color-surface-muted)' }} />
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ height: '20px', width: '60%', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '4px' }} />
+                          <div style={{ height: '16px', width: '40%', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '4px' }} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--app-color-border)', paddingTop: '16px' }}>
+                        <div style={{ height: '24px', width: '20%', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '4px' }} />
+                        <div style={{ height: '24px', width: '30%', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '4px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {mockPreviousSOWs
+                    .map(sow => {
+                      const dynamicMatchTags = sow.tags.filter(t => tags.includes(t));
+                      let dynamicMatchScore = sow.matchScore;
+                      if (dynamicMatchTags.length > 0) {
+                        const matchRatio = dynamicMatchTags.length / sow.tags.length;
+                        const baseScore = sow.matchScore > 70 ? 80 : sow.matchScore;
+                        dynamicMatchScore = Math.min(95, Math.round(baseScore + (matchRatio * 15)));
+                      }
+                      return { ...sow, dynamicMatchTags, dynamicMatchScore };
+                    })
+                    .sort((a, b) => b.dynamicMatchScore - a.dynamicMatchScore)
+                    .map(sow => {
+                    const isSelected = selectedSOWs.includes(sow.id);
+                    const isHighMatch = sow.dynamicMatchScore >= 60;
+                      return (
+                        <div key={sow.id} 
+                          onClick={() => toggleSOWSelection(sow.id)}
+                          style={{
+                          backgroundColor: isSelected ? '#f4fbfa' : 'var(--app-color-surface)',
+                          borderRadius: '12px',
+                          padding: '20px 24px',
+                          border: `1px solid ${isSelected ? 'var(--app-color-accent)' : 'var(--app-color-border)'}`,
+                          boxShadow: isSelected ? '0 4px 12px rgba(54, 192, 201, 0.1)' : '0 2px 4px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                              <div 
+                                style={{ 
+                                width: '22px', height: '22px', 
+                                borderRadius: '6px', 
+                                border: `2px solid ${isSelected ? 'var(--app-color-accent)' : 'var(--app-color-border)'}`,
+                                backgroundColor: isSelected ? 'var(--app-color-accent)' : 'white',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.2s ease'
+                              }}>
+                                {isSelected && <Icon name="check" size={14} style={{ color: 'white' }} />}
+                              </div>
+                              <div>
+                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', lineHeight: 1.4 }}>
+                                  {sow.name}
+                                </h3>
+                              </div>
+                            </div>
+                            
+                            <div style={{ 
+                              display: 'flex', alignItems: 'center', gap: '6px', 
+                              padding: '4px 12px', backgroundColor: isHighMatch ? 'var(--app-color-success-soft)' : 'var(--app-color-warning-soft)', 
+                              color: isHighMatch ? 'var(--app-color-success)' : 'var(--app-color-warning)', borderRadius: '20px', fontWeight: 600, fontSize: '13px',
+                            }}>
+                              Match Score: {sow.dynamicMatchScore}%
+                            </div>
+                          </div>
+  
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginLeft: '38px' }}>
+                            <div>
+                              <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '6px', fontWeight: 500 }}>Tags</div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {sow.tags.slice(0, 4).map(t => (
+                                  <span key={t} className="tag-chip" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>{t}</span>
+                                ))}
+                                {sow.tags.length > 4 && (
+                                  <span title={sow.tags.slice(4).join(', ')} className="tag-chip" style={{ cursor: 'default', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
+                                    + {sow.tags.length - 4}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {sow.dynamicMatchTags.length > 0 && (
+                              <div>
+                                <div style={{ fontSize: '12px', color: 'var(--app-color-success)', marginBottom: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <Icon name="check-circle" size={12} /> Matching Tags
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {sow.dynamicMatchTags.slice(0, 4).map(t => (
+                                    <span key={t} className="tag-chip">{t}</span>
+                                  ))}
+                                  {sow.dynamicMatchTags.length > 4 && (
+                                    <span title={sow.dynamicMatchTags.slice(4).join(', ')} className="tag-chip" style={{ cursor: 'default' }}>
+                                      + {sow.dynamicMatchTags.length - 4}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                  })}
+                </div>
+              )}
+            </div>
           </Card>
+        )}
       </div>
 
       <div className="sticky-bottom-bar">
-        <div style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', marginRight: 'auto' }}>
-          Submit will be enabled once RFP is uploaded
+        <div style={{ 
+          fontSize: '13px', 
+          color: (rfpFiles.length > 0 && tags.length > 0 && selectedSOWs.length > 0) ? 'var(--app-color-success)' : 'var(--app-color-text-muted)', 
+          marginRight: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontWeight: 500
+        }}>
+          <Icon name={(rfpFiles.length > 0 && tags.length > 0 && selectedSOWs.length > 0) ? "check-circle" : "alert-circle"} size={14} />
+          {rfpFiles.length === 0 
+            ? 'Please upload an RFP document to proceed.' 
+            : tags.length === 0 
+              ? 'Please add or extract tags to find reference SOWs.' 
+              : selectedSOWs.length === 0 
+                ? 'Select a reference SOW to enable Generate SOW button.'
+                : 'Ready to generate SOW draft.'}
         </div>
         <Button variant="secondary" onClick={handleClear} disabled={isSubmitting}>
           <Icon name="x" size={16} /> Clear
         </Button>
-        <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || isSubmitting} style={{ padding: '10px 24px' }}>
+        <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || tags.length === 0 || selectedSOWs.length === 0 || isSubmitting}>
           {isSubmitting ? (
-            <><Icon name="loader" size={16} className="icon-spin" /> Processing...</>
+            <><Icon name="loader" size={16} className="icon-spin" /> Generating...</>
           ) : (
-            <>Submit <Icon name="arrow-right" size={16} /></>
+            <><Icon name="sparkles" size={16} /> Generate SOW <Icon name="arrow-right" size={16} /></>
           )}
         </Button>
       </div>
@@ -583,10 +850,10 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
               This file will be removed from the upload list. You can upload it again if needed.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-              <Button variant="ghost" onClick={() => setFileToDelete(null)} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+              <Button variant="ghost" onClick={() => setFileToDelete(null)} style={{ flex: 1, justifyContent: 'center' }}>
                 Cancel
               </Button>
-              <Button variant="danger" onClick={confirmDeleteFile} style={{ backgroundColor: 'var(--app-color-danger)', color: 'white', flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+              <Button variant="danger" onClick={confirmDeleteFile} style={{ flex: 1, justifyContent: 'center' }}>
                 Remove File
               </Button>
             </div>
@@ -618,10 +885,17 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           File removed successfully.
         </div>
       )}
+
+
+
       <style>{`
         @keyframes slideInRight {
           from { opacity: 0; transform: translateX(40px); }
           to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
       `}</style>
     </>
