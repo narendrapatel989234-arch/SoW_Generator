@@ -89,7 +89,7 @@ export function AlertModal({ isOpen, onClose, title, description, type = 'succes
         <div 
           style={{
             position: 'relative',
-            width: 'min(400px, calc(100vw - 32px))',
+            width: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',

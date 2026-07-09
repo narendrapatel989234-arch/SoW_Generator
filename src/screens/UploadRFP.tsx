@@ -560,7 +560,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           {isSubmitting ? (
             <><Icon name="loader" size={16} className="icon-spin" /> Generating...</>
           ) : (
-            <><Icon name="sparkles" size={16} /> Generate SOW <Icon name="arrow-right" size={16} /></>
+            <><Icon name="sparkles" size={16} /> Generate SOW Draft <Icon name="arrow-right" size={16} /></>
           )}
         </Button>
       </div>

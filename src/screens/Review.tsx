@@ -3,6 +3,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Icon } from '../components/ui/Icon';
 import { Card } from '../components/ui/Card';
+import { AlertModal } from '../components/ui/AlertModal';
 
 interface ReviewProps {
   onTransitionToDraft?: () => void;
@@ -12,9 +13,8 @@ const dummyData = Array(10).fill(null).map((_, i) => ({
   id: `SOW-2026-00${i + 1}`,
   name: i % 2 === 0 ? 'Cloud Migration Initiative' : 'Data Center Modernization',
   client: i % 2 === 0 ? 'Acme Corp' : 'Globex Inc',
-  priority: i === 0 ? 'High' : i === 1 ? 'Medium' : 'Low',
-  submittedBy: 'Ashika Sharma',
-  submittedDate: 'Jul 08, 2026',
+  createdBy: 'Ashika Sharma',
+  creationDate: 'Jul 08, 2026',
   version: 'v1.0',
   status: 'In Progress'
 }));
@@ -104,6 +104,35 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isV1SearchFocused, setIsV1SearchFocused] = useState(false);
+  const [exportToastMessage, setExportToastMessage] = useState('');
+
+  const handleExportExcel = () => {
+    setExportToastMessage('Excel export started...');
+    
+    try {
+      const headers = ['SOW ID', 'SOW Name', 'Client', 'Created By', 'Creation Date', 'Status'];
+      const csvContent = [
+        headers.join(','),
+        ...dummyData.map(row => 
+          [row.id, `"${row.name}"`, `"${row.client}"`, `"${row.createdBy}"`, `"${row.creationDate}"`, row.status].join(',')
+        )
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Reviews_Export.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      setExportToastMessage('Excel export completed successfully.');
+    } catch (error) {
+      setExportToastMessage('Failed to export Excel document.');
+    }
+  };
 
   const tabs = [
     { label: 'All', count: 87 },
@@ -143,8 +172,8 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', paddingBottom: '12px' }}>
-          <Button variant="accent" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Icon name="download" size={16} /> Export
+          <Button variant="accent" onClick={handleExportExcel} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Icon name="download" size={16} /> Export to Excel
           </Button>
         </div>
       </div>
@@ -159,9 +188,8 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
 
           {[
             { id: 'v2-status', label: 'Status', options: ['In Progress', 'Pending Review', 'In Review', 'Changes Requested', 'Approved'] },
-            { id: 'v2-priority', label: 'Priority', options: ['High', 'Medium', 'Low'] },
             { id: 'v2-client', label: 'Client', options: ['Acme Corp', 'Globex Inc', 'Initech', 'Stark Industries'] },
-            { id: 'v2-submitted', label: 'Submitted By', options: ['Ashika Sharma', 'Sujith Thomas', 'Narendra Patel', 'Gopika Nair', 'Dipali Patil'] }
+            { id: 'v2-created', label: 'Created By', options: ['Ashika Sharma', 'Sujith Thomas', 'Narendra Patel', 'Gopika Nair', 'Dipali Patil'] }
           ].map(filter => (
             <FilterDropdown key={filter.id} label={filter.label} options={filter.options} />
           ))}
@@ -212,7 +240,7 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: 'var(--app-color-surface-muted)' }}>
-                {['SOW ID', 'SOW Name', 'Client', 'Submitted By', 'Submitted Date', 'Status', 'Action'].map(col => (
+                {['SOW ID', 'SOW Name', 'Client', 'Created By', 'Creation Date', 'Status', 'Action'].map(col => (
                   <th key={col} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: 'var(--app-color-surface-muted)', zIndex: 10 }}>
                     {col}
                   </th>
@@ -225,8 +253,8 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-primary)', fontWeight: 600 }}>{row.id}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.name}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.client}</td>
-                  <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.submittedBy}</td>
-                  <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text-muted)' }}>{row.submittedDate}</td>
+                  <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.createdBy}</td>
+                  <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text-muted)' }}>{row.creationDate}</td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>
                     <Badge tone="info">
                       In Progress
@@ -286,6 +314,15 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
         </div>
       </Card>
       
+      {/* Export Toast Modal */}
+      <AlertModal 
+        isOpen={!!exportToastMessage}
+        onClose={() => setExportToastMessage('')}
+        title={exportToastMessage}
+        type={exportToastMessage.includes('Failed') ? 'error' : 'success'}
+        autoCloseDuration={3000}
+        hideCloseButton={true}
+      />
     </div>
   );
 }

@@ -268,6 +268,12 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
   // Export Menu States
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportToastMessage, setExportToastMessage] = useState('');
+  
+  // Regenerate Section States
+  const [regeneratePopupSection, setRegeneratePopupSection] = useState<number | null>(null);
+  const [regenerationInstructions, setRegenerationInstructions] = useState('');
+  
+  // Approval States
   const [reviewerPopupSection, setReviewerPopupSection] = useState<number | null>(null);
   const [approvePopupSection, setApprovePopupSection] = useState<number | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
@@ -330,7 +336,6 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
     } catch (error) {
       setExportToastMessage('Failed to export Word document.');
     }
-    setTimeout(() => setExportToastMessage(''), 3000);
   };
 
   const handleExportPPT = () => {
@@ -364,12 +369,9 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           timestamp: new Date()
         };
         setActivityLog(prev => [newActivity, ...prev]);
-        
-        setTimeout(() => setExportToastMessage(''), 3000);
       });
     } catch (error) {
       setExportToastMessage('Failed to export PPT presentation.');
-      setTimeout(() => setExportToastMessage(''), 3000);
     }
   };
 
@@ -400,7 +402,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
 
 
   useEffect(() => {
-    const isAnyModalOpen = isShareModalOpen || isProcessing || isFadingOut || reviewerPopupSection !== null || approvePopupSection !== null || previewFile !== null;
+    const isAnyModalOpen = isShareModalOpen || isProcessing || isFadingOut || reviewerPopupSection !== null || approvePopupSection !== null || regeneratePopupSection !== null || previewFile !== null;
     
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -430,6 +432,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
         if (isShareModalOpen) setIsShareModalOpen(false);
         if (reviewerPopupSection !== null) setReviewerPopupSection(null);
         if (approvePopupSection !== null) setApprovePopupSection(null);
+        if (regeneratePopupSection !== null) setRegeneratePopupSection(null);
         if (previewFile !== null) setPreviewFile(null);
       }
     };
@@ -441,7 +444,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
       if (style) style.remove();
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isShareModalOpen, isProcessing, isFadingOut, reviewerPopupSection, approvePopupSection, previewFile]);
+  }, [isShareModalOpen, isProcessing, isFadingOut, reviewerPopupSection, approvePopupSection, regeneratePopupSection, previewFile]);
 
   return (
     <>
@@ -620,7 +623,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                                       minWidth: '220px', overflow: 'hidden', padding: '6px'
                                     }}>
                                       <button 
-                                        onClick={(e) => { e.stopPropagation(); setOpenTocMenuIndex(null); }}
+                                        onClick={(e) => { e.stopPropagation(); setRegeneratePopupSection(idx); setOpenTocMenuIndex(null); }}
                                         style={{
                                           display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                           backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
@@ -1109,7 +1112,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setIsShareModalOpen(false)}>
           <div style={{
-            width: 'min(500px, calc(100vw - 32px))',
+            width: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
@@ -1285,7 +1288,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setReviewerPopupSection(null)}>
           <div style={{
-            width: 'min(400px, calc(100vw - 32px))',
+            width: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
@@ -1301,11 +1304,24 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                 <Icon name="user-plus" size={24} />
               </div>
               <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Add Reviewer</h2>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>Search and select team members to review the <span style={{ fontWeight: 600, color: 'var(--app-color-primary)' }}>{tocItems[reviewerPopupSection]?.title}</span> section.</p>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Search and select team members to review this section.
+              </p>
             </div>
             
             {/* Body */}
             <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Information Card */}
+              <div style={{ 
+                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '8px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[reviewerPopupSection as number]?.title}</span>
+                </div>
+              </div>
               
               {/* Recipient Search */}
               <div>
@@ -1435,14 +1451,15 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setApprovePopupSection(null)}>
           <div style={{
-            width: 'min(400px, calc(100vw - 32px))',
+            width: 'min(420px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '32px 32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            {/* Header */}
+            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <div style={{ 
                 width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#16a34a',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
@@ -1453,16 +1470,18 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
               <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
                 Are you sure you want to approve this section?
               </p>
-              <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
                 Once approved, this section will be marked as Approved.
               </p>
-
+            </div>
+            
+            {/* Body */}
+            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Information Card */}
               <div style={{ 
                 width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
                 borderRadius: '8px', border: '1px solid var(--app-color-border)',
-                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left',
-                marginBottom: '16px'
+                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
               }}>
                 <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
@@ -1471,7 +1490,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
               </div>
 
               {/* Approval Comments */}
-              <div style={{ width: '100%', textAlign: 'left', marginBottom: '8px' }}>
+              <div style={{ width: '100%', textAlign: 'left' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
                   Approval Comments
                 </label>
@@ -1528,12 +1547,130 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
         </div>
       )}
 
+      {/* Regenerate Section Modal */}
+      {regeneratePopupSection !== null && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setRegeneratePopupSection(null)}>
+          <div style={{
+            width: 'min(420px, calc(100vw - 32px))',
+            backgroundColor: 'var(--app-color-surface)',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ 
+                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--app-color-primary-soft)', color: 'var(--app-color-primary)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
+              }}>
+                <Icon name="refresh-cw" size={24} />
+              </div>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Regenerate Section</h2>
+              <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
+                Are you sure you want to regenerate this section?
+              </p>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                AI will rewrite this section and replace its current content.
+              </p>
+            </div>
+            
+            {/* Body */}
+            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Information Card */}
+              <div style={{ 
+                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '8px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[regeneratePopupSection as number]?.title}</span>
+                </div>
+              </div>
+
+              {/* Regeneration Instructions */}
+              <div style={{ width: '100%', textAlign: 'left' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
+                  Additional Instructions
+                </label>
+                <textarea 
+                  value={regenerationInstructions}
+                  onChange={(e) => setRegenerationInstructions(e.target.value)}
+                  placeholder="e.g., Make the content more concise, improve business language..."
+                  style={{
+                    width: '100%', height: '100px', padding: '12px',
+                    border: '1px solid var(--app-color-border)', borderRadius: '6px',
+                    backgroundColor: 'var(--app-color-surface)', fontSize: '13px',
+                    color: 'var(--app-color-text)', resize: 'none', outline: 'none',
+                    fontFamily: 'inherit', lineHeight: 1.5, overflowY: 'auto'
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div style={{ padding: '0 32px 32px', display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+              <Button variant="ghost" onClick={() => {
+                setRegeneratePopupSection(null);
+                setRegenerationInstructions('');
+              }} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+                Cancel
+              </Button>
+              <Button 
+                variant="accent" 
+                onClick={() => {
+                if (regeneratePopupSection === null) return;
+                const sectionName = tocItems[regeneratePopupSection]?.title;
+                const instructions = regenerationInstructions.trim();
+                
+                // Close popup
+                setRegeneratePopupSection(null);
+                setRegenerationInstructions('');
+                
+                // Simulate AI generation by reusing the processing popup logic
+                // But start from a higher progress and end quicker
+                setProcessingProgress(0);
+                setCurrentProcessingStep(0);
+                setIsProcessing(true);
+                
+                // Add to Activity Log
+                const newActivity = {
+                  id: `act-${Date.now()}`,
+                  category: 'edit' as ActivityCategory,
+                  title: 'Section Regenerated',
+                  description: `AI regenerated the ${sectionName} section`,
+                  sectionName: sectionName,
+                  user: 'Dipali Balkrishna Patil',
+                  timestamp: new Date(),
+                  metadata: instructions ? { approvalComment: instructions } : undefined
+                };
+                setActivityLog(prev => [newActivity, ...prev]);
+                
+                setToastMessage('Section regenerated successfully.');
+                setTimeout(() => setToastMessage(''), 3000);
+              }} style={{ flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+                Regenerate Section
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Export Toast Modal */}
       <AlertModal 
         isOpen={!!exportToastMessage}
         onClose={() => setExportToastMessage('')}
         title={exportToastMessage}
-        type="success"
+        type={exportToastMessage.includes('Failed') ? 'error' : 'success'}
+        autoCloseDuration={3000}
+        hideCloseButton={true}
       />
 
       <style>{`
