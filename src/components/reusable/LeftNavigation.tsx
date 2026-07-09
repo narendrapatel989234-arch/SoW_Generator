@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon, type IconName } from '../ui/Icon';
 
-export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review';
+export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review' | 'validate-sow';
 
 export interface NavSection {
   id: string;

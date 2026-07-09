@@ -30,3 +30,40 @@
   border: none;
   white-space: nowrap;
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(90deg, var(--app-color-surface-muted) 25%, #e2e8f0 50%, var(--app-color-surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--app-color-border);
+  background-color: var(--app-color-bg);
+  font-size: 15px;
+  color: var(--app-color-text);
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.prompt-textarea:focus {
+  border-color: var(--app-color-accent);
+  box-shadow: 0 0 0 3px var(--app-color-accent-soft);
+  background-color: var(--app-color-surface);
+}

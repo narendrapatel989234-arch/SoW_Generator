@@ -4,9 +4,11 @@ import { TopNavigation } from '../components/reusable/TopNavigation';
 import { UploadRFP } from '../screens/UploadRFP';
 import { SOWDraft } from '../screens/SOWDraft';
 import { Review } from '../screens/Review';
+import { ValidateSOW } from '../screens/ValidateSOW';
 export function Layout() {
   const [collapsed, setCollapsed] = useState(true);
   const [activeScreen, setActiveScreen] = useState<ScreenId>('rfp-to-sow');
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
   
   React.useEffect(() => {
     window.scrollTo(0, 0);
@@ -17,11 +19,19 @@ export function Layout() {
   const renderScreen = () => {
     switch (activeScreen) {
       case 'rfp-to-sow':
-        return <UploadRFP onTransitionToDraft={() => setActiveScreen('sow-draft')} />;
+        return <UploadRFP onTransitionToDraft={() => setActiveScreen('validate-sow')} />;
+      case 'validate-sow':
+        return <ValidateSOW 
+          onProceed={(enabled) => {
+            setSelectedSections(enabled);
+            setActiveScreen('sow-draft');
+          }} 
+          onCancel={() => setActiveScreen('rfp-to-sow')} 
+        />;
       case 'sow-draft':
-        return <SOWDraft />;
+        return <SOWDraft selectedSections={selectedSections.length > 0 ? selectedSections : undefined} />;
       case 'sow-draft-review':
-        return <SOWDraft isReviewMode={true} />;
+        return <SOWDraft isReviewMode={true} selectedSections={selectedSections.length > 0 ? selectedSections : undefined} />;
       case 'review':
         return <Review onTransitionToDraft={() => setActiveScreen('sow-draft-review')} />;
       default:
@@ -39,8 +49,8 @@ export function Layout() {
       />
       <main className="app-main">
         <TopNavigation 
-          title={activeScreen === 'sow-draft' || activeScreen === 'sow-draft-review' ? 'SOW-2026-001' : activeScreen === 'review' ? 'Reviews' : 'Upload RFP'} 
-          breadcrumb={activeScreen === 'sow-draft' ? 'Review' : activeScreen === 'sow-draft-review' ? 'Draft Review' : undefined}
+          title={activeScreen === 'sow-draft' || activeScreen === 'sow-draft-review' || activeScreen === 'validate-sow' ? 'SOW-2026-001' : activeScreen === 'review' ? 'Reviews' : 'Upload RFP'} 
+          breadcrumb={activeScreen === 'sow-draft' ? 'Review' : activeScreen === 'sow-draft-review' ? 'Review' : activeScreen === 'validate-sow' ? 'Validate Sections' : undefined}
         />
         <div className="app-content" id="app-content">
           {renderScreen()}

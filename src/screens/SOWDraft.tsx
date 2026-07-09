@@ -10,25 +10,25 @@ import { Card } from '../components/ui/Card';
 
 const initialTocItems = [
   { title: 'Executive Summary', score: 95 },
-  { title: 'Objectives', score: 92 },
+  { title: 'Objectives', score: 82 },
   { title: 'Project Scope', score: 88 },
-  { title: 'Solution Architecture', score: 85 },
+  { title: 'Solution Architecture', score: 54 },
   { title: 'Technical Requirements', score: 90 },
   { title: 'Deliverables', score: 94 },
   { title: 'Timeline', score: 87 },
-  { title: 'Commercial Proposal', score: 58 },
+  { title: 'Commercial Proposal', score: 76 },
   { title: 'Risks & Assumptions', score: 86 },
   { title: 'Acceptance Criteria', score: 91 }
 ];
 
 const processingStages = [
-  'Uploading RFP and Supporting documents',
-  'Analyzing selected Previous SOWs for reference',
-  'Extracting business requirements',
-  'Mapping historical context to project scope',
-  'Preparing solution structure',
-  'Generating Scope of Work',
-  'Finalizing draft'
+  'Initializing AI generation engine',
+  'Analyzing validated SOW sections',
+  'Drafting content for selected sections',
+  'Synthesizing document structure',
+  'Applying formatting and styles',
+  'Generating final Scope of Work',
+  'Ready for review'
 ];
 
 interface TeamMember {
@@ -202,12 +202,17 @@ const mockActivities: ActivityItem[] = [
 
 interface SOWDraftProps {
   isReviewMode?: boolean;
+  selectedSections?: string[];
 }
 
-export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
+export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftProps) {
   const [activeTab, setActiveTab] = useState<'rfp' | 'sow' | 'activity'>('sow');
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string}[]>(initialTocItems);
+  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string}[]>(
+    selectedSections && selectedSections.length > 0
+      ? selectedSections.map(title => ({ title, score: Math.random() > 0.2 ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 30) + 50 }))
+      : initialTocItems
+  );
   const [activityLog, setActivityLog] = useState<ActivityItem[]>(mockActivities);
   const [expandedActivities, setExpandedActivities] = useState<Record<string, boolean>>({});
 
@@ -577,37 +582,38 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                             <span style={{ fontSize: '13px' }}>{item.title}</span>
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '24px', height: '24px', justifyContent: 'flex-end' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '48px', height: '24px', justifyContent: 'flex-end' }}>
                             {item.status === 'Approved' ? (
                               <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
-                            ) : !(hoveredTocIndex === idx || openTocMenuIndex === idx) ? (
-                              <div title="AI Generation Accuracy" style={{ 
-                                fontSize: '12px', 
-                                fontWeight: 700, 
-                                color: item.score >= 90 ? 'var(--app-color-success)' : item.score >= 60 ? '#d97706' : 'var(--app-color-danger)'
-                              }}>
-                                {item.score}%
-                              </div>
                             ) : (
-                              <div style={{ position: 'relative' }}>
-                                <button 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setOpenTocMenuIndex(openTocMenuIndex === idx ? null : idx);
-                                  }}
-                                  style={{
-                                    background: 'transparent', border: 'none', padding: '4px',
-                                    cursor: 'pointer', color: 'var(--app-color-text-muted)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    borderRadius: '4px'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                  <Icon name="more-horizontal" size={16} />
-                                </button>
-                                
-                                {openTocMenuIndex === idx && (
+                              <>
+                                <div title="AI Generation Accuracy" style={{ 
+                                  fontSize: '12px', 
+                                  fontWeight: 700, 
+                                  color: item.score >= 90 ? 'var(--app-color-success)' : item.score >= 60 ? '#d97706' : 'var(--app-color-danger)'
+                                }}>
+                                  {item.score}%
+                                </div>
+                                {(hoveredTocIndex === idx || openTocMenuIndex === idx) && (
+                                  <div style={{ position: 'relative' }}>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenTocMenuIndex(openTocMenuIndex === idx ? null : idx);
+                                      }}
+                                      style={{
+                                        background: 'transparent', border: 'none', padding: '4px',
+                                        cursor: 'pointer', color: 'var(--app-color-text-muted)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        borderRadius: '4px'
+                                      }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Icon name="more-horizontal" size={16} />
+                                    </button>
+                                    
+                                    {openTocMenuIndex === idx && (
                                   <>
                                     <div 
                                       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
@@ -668,7 +674,9 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                                 )}
                               </div>
                             )}
-                          </div>
+                            </>
+                          )}
+                        </div>
                         </div>
                       </li>
                     );
@@ -733,8 +741,8 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
         )}
         
         {activeTab === 'rfp' && (
-          <div style={{ padding: '32px', width: '100%', margin: '0 auto' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, width: '100%' }}>
+          <div className="page-container" style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '24px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', maxWidth: '1200px', margin: '0 auto' }}>
               
               <Card title={
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -827,109 +835,86 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
               }>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{
-                        backgroundColor: 'var(--app-color-surface)',
-                        borderRadius: '12px',
-                        padding: '20px 24px',
-                        border: '1px solid var(--app-color-border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'all 0.2s ease',
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            <div>
-                              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', lineHeight: 1.4 }}>
-                                Cloud Migration & Infrastructure Modernization - Phase 1
-                              </h3>
-                            </div>
-                          </div>
-                          
-                          <div style={{ 
-                            display: 'flex', alignItems: 'center', gap: '6px', 
-                            padding: '4px 12px', backgroundColor: 'var(--app-color-success-soft)', 
-                            color: 'var(--app-color-success)', borderRadius: '20px', fontWeight: 600, fontSize: '13px',
-                          }}>
-                            Match Score: 95%
-                          </div>
-                        </div>
+                    backgroundColor: 'var(--app-color-surface)',
+                    borderRadius: '12px',
+                    padding: '20px 24px',
+                    border: '1px solid var(--app-color-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', lineHeight: 1.4 }}>
+                        Cloud Migration & Infrastructure Modernization - Phase 1
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#10b981', lineHeight: 1 }}>86%</div>
+                        <div style={{ fontSize: '11px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', fontWeight: 600 }}>Relevance</div>
+                      </div>
+                    </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginLeft: '0' }}>
-                          <div>
-                            <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '6px', fontWeight: 500 }}>Tags</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {['Cloud', 'Azure', 'Migration', 'DevOps'].map(t => (
-                                <span key={t} className="tag-chip" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>{t}</span>
-                              ))}
-                              <span title="Data, Networking, Storage" className="tag-chip" style={{ cursor: 'default', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>
-                                + 3
-                              </span>
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: 'var(--app-color-success)', marginBottom: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Icon name="check-circle" size={12} /> Matching Tags
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {['Cloud', 'Azure', 'Migration', 'Infrastructure'].map(t => (
-                                <span key={t} className="tag-chip">{t}</span>
-                              ))}
-                              <span title="Modernization" className="tag-chip" style={{ cursor: 'default' }}>
-                                + 1
-                              </span>
-                            </div>
-                          </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--app-color-success)' }}></span>
+                          <span style={{ color: 'var(--app-color-text-muted)' }}>Matching Tag</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#9ca3af' }}></span>
+                          <span style={{ color: 'var(--app-color-text-muted)' }}>Other Tag</span>
                         </div>
                       </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {['Cloud', 'Azure', 'Migration'].map(t => (
+                          <span key={t} className="tag-chip" style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid transparent', fontWeight: 500 }}>{t}</span>
+                        ))}
+                        {['DevOps', 'Data', 'Networking', 'Storage'].map(t => (
+                          <span key={t} className="tag-chip" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', fontWeight: 400 }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Second Selected SOW */}
-                      <div style={{
-                        backgroundColor: 'var(--app-color-surface)',
-                        borderRadius: '12px',
-                        padding: '20px 24px',
-                        border: '1px solid var(--app-color-border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'all 0.2s ease',
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            <div>
-                              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', lineHeight: 1.4 }}>
-                                Enterprise Healthcare Platform Azure Migration
-                              </h3>
-                            </div>
-                          </div>
-                          
-                          <div style={{ 
-                            display: 'flex', alignItems: 'center', gap: '6px', 
-                            padding: '4px 12px', backgroundColor: 'var(--app-color-success-soft)', 
-                            color: 'var(--app-color-success)', borderRadius: '20px', fontWeight: 600, fontSize: '13px',
-                          }}>
-                            Match Score: 89%
-                          </div>
+                  <div style={{
+                    backgroundColor: 'var(--app-color-surface)',
+                    borderRadius: '12px',
+                    padding: '20px 24px',
+                    border: '1px solid var(--app-color-border)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', lineHeight: 1.4 }}>
+                        Security & Compliance Audit for Cloud Infrastructure
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '20px', fontWeight: 700, color: '#f59e0b', lineHeight: 1 }}>50%</div>
+                        <div style={{ fontSize: '11px', color: 'var(--app-color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px', fontWeight: 600 }}>Relevance</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '12px', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: 'var(--app-color-success)' }}></span>
+                          <span style={{ color: 'var(--app-color-text-muted)' }}>Matching Tag</span>
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginLeft: '0' }}>
-                          <div>
-                            <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', marginBottom: '6px', fontWeight: 500 }}>Tags</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {['Healthcare', 'Azure', 'Security'].map(t => (
-                                <span key={t} className="tag-chip" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb' }}>{t}</span>
-                              ))}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '12px', color: 'var(--app-color-success)', marginBottom: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Icon name="check-circle" size={12} /> Matching Tags
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                              {['Healthcare', 'Azure'].map(t => (
-                                <span key={t} className="tag-chip">{t}</span>
-                              ))}
-                            </div>
-                          </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#9ca3af' }}></span>
+                          <span style={{ color: 'var(--app-color-text-muted)' }}>Other Tag</span>
                         </div>
                       </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {['Security'].map(t => (
+                          <span key={t} className="tag-chip" style={{ backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid transparent', fontWeight: 500 }}>{t}</span>
+                        ))}
+                        {['Compliance', 'Audit'].map(t => (
+                          <span key={t} className="tag-chip" style={{ backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb', fontWeight: 400 }}>{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </Card>
 
@@ -938,8 +923,8 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
         )}
 
         {activeTab === 'activity' && (
-          <div style={{ padding: '32px 48px', height: '100%', overflowY: 'auto', backgroundColor: 'var(--app-color-bg)' }}>
-            <div style={{ maxWidth: '850px', margin: '0 auto' }}>
+          <div className="page-container" style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '24px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: 'var(--app-color-surface)', borderRadius: '12px', border: '1px solid var(--app-color-border)', padding: '32px 48px' }}>
               <div style={{ marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--app-color-primary)', margin: '0 0 8px 0' }}>Activity Log</h2>
                 <p style={{ margin: 0, color: 'var(--app-color-text-muted)', fontSize: '14px' }}>A complete audit trail of all actions performed on this SOW document.</p>
@@ -958,22 +943,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {activityLog.map((log) => {
-                      const iconConfig = (() => {
-                        switch(log.category) {
-                          case 'upload': return { name: 'upload-cloud', color: 'var(--app-color-accent)', bg: 'var(--app-color-accent-soft)' };
-                          case 'generation': return { name: 'sparkles', color: '#8b5cf6', bg: '#ede9fe' };
-                          case 'edit': return { name: 'edit', color: '#0ea5e9', bg: '#e0f2fe' };
-                          case 'tag': return { name: 'tag', color: '#d97706', bg: '#fef3c7' };
-                          case 'delete': return { name: 'trash', color: 'var(--app-color-danger)', bg: 'var(--app-color-danger-soft)' };
-                          case 'export': return { name: 'download', color: 'var(--app-color-primary)', bg: 'var(--app-color-surface-muted)' };
-                          case 'review': return { name: 'user-plus', color: '#0ea5e9', bg: '#e0f2fe' };
-                          case 'approval': return { name: 'check-circle', color: 'var(--app-color-success)', bg: 'var(--app-color-success-soft)' };
-                          default: return { name: 'activity', color: 'var(--app-color-text-muted)', bg: 'var(--app-color-surface-muted)' };
-                        }
-                      })();
-                      
-                      const showExpand = log.previousValue !== undefined;
-                      const isExpanded = expandedActivities[log.id];
+                      const iconConfig = { name: 'sparkles', color: '#0ea5e9', bg: '#ffffff' };
 
                       return (
                         <div key={log.id} style={{ position: 'relative', display: 'flex', gap: '16px', zIndex: 1 }}>
@@ -982,14 +952,14 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                             width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
                             backgroundColor: iconConfig.bg, color: iconConfig.color,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            border: '2px solid var(--app-color-surface)', marginLeft: '-16px', zIndex: 2
+                            border: '1px solid #bfdbfe', marginLeft: '-16px', zIndex: 2
                           }}>
                             <Icon name={iconConfig.name as any} size={16} />
                           </div>
                           
                           {/* Card */}
                           <div style={{ 
-                            flex: 1, backgroundColor: 'var(--app-color-surface)', borderRadius: '12px',
+                            flex: 1, backgroundColor: 'var(--app-color-surface)', borderRadius: '16px',
                             border: '1px solid var(--app-color-border)', overflow: 'hidden',
                             boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                           }}>
@@ -1000,9 +970,6 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                                 <div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                                     <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--app-color-text)' }}>{log.title}</h3>
-                                    {log.sectionName && (
-                                      <Badge tone="default" style={{ fontSize: '11px', padding: '2px 8px' }}>{log.sectionName}</Badge>
-                                    )}
                                   </div>
                                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
                                     {log.description}
@@ -1016,79 +983,8 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                                 </div>
                               </div>
 
-                              {/* Full Width Metadata (AI Instruction / Comments) */}
-                              {log.metadata?.aiInstruction && (
-                                <div style={{ width: '100%', marginTop: '4px', padding: '10px 14px', backgroundColor: '#f5f3ff', borderRadius: '6px', borderLeft: '3px solid #8b5cf6' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#6d28d9', marginBottom: '6px' }}><Icon name="sparkles" size={12} /> AI INSTRUCTION</div>
-                                  <div style={{ fontSize: '13px', color: '#4c1d95', fontStyle: 'italic', lineHeight: 1.5 }}>"{log.metadata.aiInstruction}"</div>
-                                </div>
-                              )}
-                              {log.metadata?.approvalComment && (
-                                <div style={{ width: '100%', marginTop: '4px', padding: '10px 14px', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '6px', borderLeft: '3px solid var(--app-color-border)' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: 'var(--app-color-text-muted)', marginBottom: '6px' }}><Icon name="file-text" size={12} /> COMMENT</div>
-                                  <div style={{ fontSize: '13px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>"{log.metadata.approvalComment}"</div>
-                                </div>
-                              )}
+                              {/* Removed Metadata Blocks */}
 
-                              {/* Expandable Action */}
-                              {showExpand && (
-                                <div>
-                                  <button 
-                                    onClick={() => toggleActivityExpand(log.id)}
-                                    style={{
-                                      background: 'none', border: 'none', padding: 0,
-                                      color: 'var(--app-color-accent)', fontSize: '13px', fontWeight: 500,
-                                      display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
-                                    }}
-                                  >
-                                    {isExpanded ? 'Hide details' : 'View details'} <Icon name={isExpanded ? 'chevron-up' : 'chevron-down'} size={14} />
-                                  </button>
-                                  
-                                  {isExpanded && (
-                                    <div style={{ 
-                                      marginTop: '12px', display: 'grid', gridTemplateColumns: log.updatedValue ? '1fr 1fr' : '1fr', gap: '16px',
-                                      backgroundColor: 'var(--app-color-surface-muted)', padding: '16px', borderRadius: '8px',
-                                      border: '1px solid var(--app-color-border)'
-                                    }}>
-                                      <div>
-                                        <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--app-color-text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--app-color-danger)' }} /> Previous
-                                        </div>
-                                        <div style={{ fontSize: '13px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
-                                          {Array.isArray(log.previousValue) ? (
-                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                              {log.previousValue.map(t => <span key={t} className="tag-chip">{t}</span>)}
-                                            </div>
-                                          ) : (
-                                            <div style={{ padding: '8px 12px', backgroundColor: 'var(--app-color-surface)', borderRadius: '6px', border: '1px solid var(--app-color-border)', color: 'var(--app-color-danger)', textDecoration: 'line-through' }}>
-                                              {log.previousValue}
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                      
-                                      {log.updatedValue && (
-                                        <div>
-                                          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--app-color-text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--app-color-success)' }} /> Updated
-                                          </div>
-                                          <div style={{ fontSize: '13px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
-                                            {Array.isArray(log.updatedValue) ? (
-                                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                {log.updatedValue.map(t => <span key={t} className="tag-chip">{t}</span>)}
-                                              </div>
-                                            ) : (
-                                              <div style={{ padding: '8px 12px', backgroundColor: 'var(--app-color-surface)', borderRadius: '6px', border: '1px solid var(--app-color-border)', color: 'var(--app-color-success)' }}>
-                                                {log.updatedValue}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -1288,7 +1184,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setReviewerPopupSection(null)}>
           <div style={{
-            width: 'min(420px, calc(100vw - 32px))',
+            width: 'min(600px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
@@ -1296,21 +1192,22 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ 
-                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0ea5e9',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
-              }}>
-                <Icon name="user-plus" size={24} />
-              </div>
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Add Reviewer</h2>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
-                Search and select team members to review this section.
-              </p>
+            <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
+              <Icon name="user-plus" size={20} style={{ color: 'var(--app-color-primary)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Add Reviewer</h2>
+              <button 
+                onClick={() => setReviewerPopupSection(null)}
+                style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+              >
+                <Icon name="x" size={20} style={{ color: 'var(--app-color-text-muted)' }} />
+              </button>
             </div>
             
             {/* Body */}
-            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Search and select team members to review this section.
+              </p>
               {/* Information Card */}
               <div style={{ 
                 width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
@@ -1427,9 +1324,9 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '0 32px 32px', display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
-              <Button variant="ghost" onClick={() => setReviewerPopupSection(null)} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>Cancel</Button>
-              <Button variant="accent" onClick={handleShareSubmit} disabled={selectedRecipients.length === 0 || isSharing} style={{ flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+            <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+              <Button variant="ghost" onClick={() => setReviewerPopupSection(null)} style={{ border: '1px solid var(--app-color-border)', padding: '8px 24px' }}>Cancel</Button>
+              <Button variant="accent" onClick={handleShareSubmit} disabled={selectedRecipients.length === 0 || isSharing} style={{ padding: '8px 24px' }}>
                 {isSharing ? (
                   <><Icon name="loader" size={16} className="icon-spin" /> Adding...</>
                 ) : (
@@ -1451,7 +1348,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setApprovePopupSection(null)}>
           <div style={{
-            width: 'min(420px, calc(100vw - 32px))',
+            width: 'min(600px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
@@ -1459,24 +1356,22 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ 
-                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#16a34a',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
-              }}>
-                <Icon name="check" size={24} />
-              </div>
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Approve Section</h2>
-              <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
-                Are you sure you want to approve this section?
-              </p>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
-                Once approved, this section will be marked as Approved.
-              </p>
+            <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
+              <Icon name="check" size={20} style={{ color: 'var(--app-color-primary)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Approve Section</h2>
+              <button 
+                onClick={() => setApprovePopupSection(null)}
+                style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+              >
+                <Icon name="x" size={20} style={{ color: 'var(--app-color-text-muted)' }} />
+              </button>
             </div>
             
             {/* Body */}
-            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Are you sure you want to approve this section? Once approved, it will be marked as Approved.
+              </p>
               {/* Information Card */}
               <div style={{ 
                 width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
@@ -1510,11 +1405,11 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             </div>
             
             {/* Footer */}
-            <div style={{ padding: '0 32px 32px', display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+            <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
               <Button variant="ghost" onClick={() => {
                 setApprovePopupSection(null);
                 setApprovalComment('');
-              }} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+              }} style={{ border: '1px solid var(--app-color-border)', padding: '8px 24px' }}>
                 Cancel
               </Button>
               <Button variant="accent" onClick={() => {
@@ -1539,7 +1434,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                 setApprovalComment('');
                 setToastMessage('Section approved successfully.');
                 setTimeout(() => setToastMessage(''), 3000);
-              }} style={{ flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+              }} style={{ padding: '8px 24px' }}>
                 Approve
               </Button>
             </div>
@@ -1557,7 +1452,7 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
           zIndex: 1000
         }} onClick={() => setRegeneratePopupSection(null)}>
           <div style={{
-            width: 'min(420px, calc(100vw - 32px))',
+            width: 'min(600px, calc(100vw - 32px))',
             backgroundColor: 'var(--app-color-surface)',
             borderRadius: '16px',
             boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
@@ -1565,24 +1460,22 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             overflow: 'hidden'
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div style={{ padding: '32px 32px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ 
-                width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--app-color-primary-soft)', color: 'var(--app-color-primary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px'
-              }}>
-                <Icon name="refresh-cw" size={24} />
-              </div>
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '8px' }}>Regenerate Section</h2>
-              <p style={{ margin: '0 0 6px 0', fontSize: '14px', color: 'var(--app-color-text)', lineHeight: 1.5 }}>
-                Are you sure you want to regenerate this section?
-              </p>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
-                AI will rewrite this section and replace its current content.
-              </p>
+            <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
+              <Icon name="refresh-cw" size={20} style={{ color: 'var(--app-color-primary)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Regenerate Section</h2>
+              <button 
+                onClick={() => setRegeneratePopupSection(null)}
+                style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+              >
+                <Icon name="x" size={20} style={{ color: 'var(--app-color-text-muted)' }} />
+              </button>
             </div>
             
             {/* Body */}
-            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Provide specific instructions or context for the AI to regenerate this section.
+              </p>
               {/* Information Card */}
               <div style={{ 
                 width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
@@ -1616,11 +1509,11 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             </div>
             
             {/* Footer */}
-            <div style={{ padding: '0 32px 32px', display: 'flex', justifyContent: 'center', gap: '16px', width: '100%' }}>
+            <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
               <Button variant="ghost" onClick={() => {
                 setRegeneratePopupSection(null);
                 setRegenerationInstructions('');
-              }} style={{ border: '1px solid var(--app-color-border)', flex: 1, justifyContent: 'center', padding: '10px 0' }}>
+              }} style={{ border: '1px solid var(--app-color-border)', padding: '8px 24px' }}>
                 Cancel
               </Button>
               <Button 
@@ -1641,9 +1534,9 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                 setIsProcessing(true);
                 
                 // Add to Activity Log
-                const newActivity = {
+                const newActivity: ActivityItem = {
                   id: `act-${Date.now()}`,
-                  category: 'edit' as ActivityCategory,
+                  category: 'edit',
                   title: 'Section Regenerated',
                   description: `AI regenerated the ${sectionName} section`,
                   sectionName: sectionName,
@@ -1655,8 +1548,8 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
                 
                 setToastMessage('Section regenerated successfully.');
                 setTimeout(() => setToastMessage(''), 3000);
-              }} style={{ flex: 1, justifyContent: 'center', padding: '10px 0' }}>
-                Regenerate Section
+              }} style={{ padding: '8px 24px' }}>
+                <Icon name="sparkles" size={16} /> Regenerate
               </Button>
             </div>
           </div>
@@ -1703,17 +1596,15 @@ export function SOWDraft({ isReviewMode = false }: SOWDraftProps) {
             transition: 'transform 0.4s ease',
             overflow: 'hidden'
           }}>
-            <div key={currentProcessingStep === 0 ? "upload" : "gen"} className="fade-in-content" style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <div key="gen" className="fade-in-content" style={{ textAlign: 'center', marginBottom: '16px' }}>
               <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                <Icon name={currentProcessingStep === 0 ? "upload-cloud" : "loader"} size={20} className={currentProcessingStep === 0 ? "icon-bounce" : "icon-spin"} />
+                <Icon name="loader" size={20} className="icon-spin" />
               </div>
               <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '6px' }}>
-                {currentProcessingStep === 0 ? 'Uploading RFP Document' : 'Generating Scope of Work'}
+                Generating Scope of Work
               </h2>
               <p style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', lineHeight: '1.4', margin: 0 }}>
-                {currentProcessingStep === 0 
-                  ? 'Please wait while we securely upload and process your files.' 
-                  : 'Generating your draft using the uploaded RFP, supporting documents, and the selected reference SOW.'}
+                Please wait while our AI synthesizes your selected sections into a comprehensive SOW draft.
               </p>
             </div>
 

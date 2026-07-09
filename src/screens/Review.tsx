@@ -19,9 +19,8 @@ const dummyData = Array(10).fill(null).map((_, i) => ({
   status: 'In Progress'
 }));
 
-function FilterDropdown({ label, options }: { label: string, options: string[] }) {
+function FilterDropdown({ label, options, selected, onChange }: { label: string, options: string[], selected: string | null, onChange: (val: string | null) => void }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,7 +73,7 @@ function FilterDropdown({ label, options }: { label: string, options: string[] }
           {options.map(opt => (
             <button
               key={opt}
-              onClick={() => { setSelected(opt === selected ? null : opt); setIsOpen(false); }}
+              onClick={() => { onChange(opt === selected ? null : opt); setIsOpen(false); }}
               style={{
                 padding: '8px 12px',
                 border: 'none',
@@ -105,6 +104,7 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isV1SearchFocused, setIsV1SearchFocused] = useState(false);
   const [exportToastMessage, setExportToastMessage] = useState('');
+  const [filters, setFilters] = useState<Record<string, string | null>>({});
 
   const handleExportExcel = () => {
     setExportToastMessage('Excel export started...');
@@ -191,19 +191,31 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
             { id: 'v2-client', label: 'Client', options: ['Acme Corp', 'Globex Inc', 'Initech', 'Stark Industries'] },
             { id: 'v2-created', label: 'Created By', options: ['Ashika Sharma', 'Sujith Thomas', 'Narendra Patel', 'Gopika Nair', 'Dipali Patil'] }
           ].map(filter => (
-            <FilterDropdown key={filter.id} label={filter.label} options={filter.options} />
+            <FilterDropdown 
+              key={filter.id} 
+              label={filter.label} 
+              options={filter.options}
+              selected={filters[filter.id] || null}
+              onChange={(val) => setFilters(prev => ({ ...prev, [filter.id]: val }))}
+            />
           ))}
 
-          <button style={{
-            background: 'transparent',
-            border: 'none',
-            fontSize: '13px',
-            color: 'var(--app-color-primary)',
-            cursor: 'pointer',
-            fontWeight: 600,
-            textDecoration: 'underline'
-          }}>
-            Clear All
+          <button 
+            onClick={() => { setFilters({}); setSearchQuery(''); }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              fontSize: '13px',
+              color: '#3b82f6',
+              cursor: 'pointer',
+              fontWeight: 500,
+              textDecoration: 'underline',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <Icon name="x" size={14} /> Clear All
           </button>
 
           <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--app-color-border)', margin: '0 4px' }}></div>
@@ -240,7 +252,7 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: 'var(--app-color-surface-muted)' }}>
-                {['SOW ID', 'SOW Name', 'Client', 'Created By', 'Creation Date', 'Status', 'Action'].map(col => (
+                {['SOW ID', 'SOW Name', 'Client', 'Created By', 'Creation Date', 'Status'].map(col => (
                   <th key={col} style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: 'var(--app-color-surface-muted)', zIndex: 10 }}>
                     {col}
                   </th>
@@ -249,8 +261,14 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
             </thead>
             <tbody>
               {dummyData.map((row, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid var(--app-color-border)', transition: 'background-color 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--app-color-bg)'} onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-primary)', fontWeight: 600 }}>{row.id}</td>
+                <tr 
+                  key={idx} 
+                  style={{ borderBottom: '1px solid var(--app-color-border)', transition: 'background-color 0.15s ease', cursor: 'pointer' }} 
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--app-color-bg)'} 
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onClick={() => onTransitionToDraft?.()}
+                >
+                  <td style={{ padding: '16px', fontSize: '14px', color: '#3b82f6', fontWeight: 500, textDecoration: 'underline' }}>{row.id}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.name}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.client}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.createdBy}</td>
@@ -259,18 +277,6 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
                     <Badge tone="info">
                       In Progress
                     </Badge>
-                  </td>
-                  <td style={{ padding: '16px' }}>
-                    <button 
-                      onClick={() => onTransitionToDraft?.()}
-                      style={{ 
-                        background: 'transparent', border: 'none', color: 'var(--app-color-accent)', 
-                        fontSize: '13px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline',
-                        display: 'flex', alignItems: 'center', gap: '4px', padding: 0
-                      }}
-                    >
-                      Review <Icon name="arrow-right" size={14} />
-                    </button>
                   </td>
                 </tr>
               ))}

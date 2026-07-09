@@ -138,6 +138,7 @@
   align-items: center;
   width: 100%;
   padding: 12px;
+  margin-bottom: 8px;
   color: rgba(255, 255, 255, 0.7);
   text-align: left;
   border-radius: var(--app-radius-md);
@@ -438,6 +439,7 @@
   font-weight: 600;
   font-size: 18px;
   color: var(--app-color-primary);
+  width: 100%;
 }
 
 .app-card__body {
@@ -745,7 +747,7 @@
 /* Tabs */
 .tabs-container {
   display: flex;
-  gap: 32px;
+  gap: 48px;
   border-bottom: 1px solid var(--app-color-border);
 }
 
@@ -1133,6 +1135,9 @@
 
 .sow-toc-sidebar {
   border-right: 1px solid var(--app-color-border);
+  background-color: var(--app-color-bg);
+  border-top-left-radius: 16px;
+  border-bottom-left-radius: 16px;
   padding: 0 20px 32px 20px;
   overflow-y: visible;
   height: auto;
