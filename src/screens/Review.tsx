@@ -9,15 +9,18 @@ interface ReviewProps {
   onTransitionToDraft?: () => void;
 }
 
-const dummyData = Array(10).fill(null).map((_, i) => ({
-  id: `SOW-2026-00${i + 1}`,
-  name: i % 2 === 0 ? 'Cloud Migration Initiative' : 'Data Center Modernization',
-  client: i % 2 === 0 ? 'Acme Corp' : 'Globex Inc',
-  createdBy: 'Ashika Sharma',
-  creationDate: 'Jul 08, 2026',
-  version: 'v1.0',
-  status: 'In Progress'
-}));
+const dummyData = [
+  { id: 'SOW-2026-001', name: 'Cloud Migration Initiative', client: 'Acme Corp', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'In Review' },
+  { id: 'SOW-2026-002', name: 'Data Center Modernization', client: 'Globex Inc', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Review Pending' },
+  { id: 'SOW-2026-003', name: 'Cloud Migration Initiative', client: 'Acme Corp', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Approved' },
+  { id: 'SOW-2026-004', name: 'Data Center Modernization', client: 'Globex Inc', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Changes Requested' },
+  { id: 'SOW-2026-005', name: 'Cloud Migration Initiative', client: 'Acme Corp', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'In Review' },
+  { id: 'SOW-2026-006', name: 'Data Center Modernization', client: 'Globex Inc', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Review Pending' },
+  { id: 'SOW-2026-007', name: 'Cloud Migration Initiative', client: 'Acme Corp', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Approved' },
+  { id: 'SOW-2026-008', name: 'Data Center Modernization', client: 'Globex Inc', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Changes Requested' },
+  { id: 'SOW-2026-009', name: 'Cloud Migration Initiative', client: 'Acme Corp', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'In Review' },
+  { id: 'SOW-2026-0010', name: 'Data Center Modernization', client: 'Globex Inc', createdBy: 'Ashika Sharma', creationDate: 'Jul 08, 2026', version: 'v1.0', status: 'Review Pending' }
+];
 
 function FilterDropdown({ label, options, selected, onChange }: { label: string, options: string[], selected: string | null, onChange: (val: string | null) => void }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -35,7 +38,7 @@ function FilterDropdown({ label, options, selected, onChange }: { label: string,
 
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         style={{
           padding: '6px 28px 6px 14px',
@@ -108,12 +111,12 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
 
   const handleExportExcel = () => {
     setExportToastMessage('Excel export started...');
-    
+
     try {
       const headers = ['SOW ID', 'SOW Name', 'Client', 'Created By', 'Creation Date', 'Status'];
       const csvContent = [
         headers.join(','),
-        ...dummyData.map(row => 
+        ...dummyData.map(row =>
           [row.id, `"${row.name}"`, `"${row.client}"`, `"${row.createdBy}"`, `"${row.creationDate}"`, row.status].join(',')
         )
       ].join('\n');
@@ -127,25 +130,54 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
-      
+
       setExportToastMessage('Excel export completed successfully.');
     } catch (error) {
       setExportToastMessage('Failed to export Excel document.');
     }
   };
 
+  const getCount = (status: string) => dummyData.filter(d => d.status === status).length;
+
   const tabs = [
-    { label: 'All', count: 87 },
-    { label: 'In Progress', count: 20 },
-    { label: 'Pending Review', count: 18 },
-    { label: 'In Review', count: 6 },
-    { label: 'Changes Requested', count: 9 },
-    { label: 'Approved', count: 52 }
+    { label: 'All', count: dummyData.length },
+    { label: 'Review Pending', count: getCount('Review Pending') },
+    { label: 'In Review', count: getCount('In Review') },
+    { label: 'Changes Requested', count: getCount('Changes Requested') },
+    { label: 'Approved', count: getCount('Approved') }
   ];
+
+  const filteredData = dummyData.filter(row => {
+    if (activeTab !== 'All' && row.status !== activeTab) return false;
+    if (filters['v2-status'] && row.status !== filters['v2-status']) return false;
+    if (filters['v2-client'] && row.client !== filters['v2-client']) return false;
+    if (filters['v2-created'] && row.createdBy !== filters['v2-created']) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!row.name.toLowerCase().includes(q) && !row.client.toLowerCase().includes(q) && !row.id.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const renderDocumentStatus = (status: string) => {
+    let tone = 'warning';
+    switch (status) {
+      case 'Changes Requested': tone = 'danger'; break;
+      case 'In Review': tone = 'info'; break;
+      case 'Review Pending': tone = 'warning'; break;
+      case 'Approved': tone = 'success'; break;
+    }
+
+    return (
+      <Badge tone={tone as any}>
+        {status}
+      </Badge>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '64px', height: '100%', flex: 1 }}>
-      
+
       {/* Header & Tabs */}
       <div className="screen-header" style={{ marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--app-color-border)' }}>
         <div className="tabs-container" style={{ margin: 0, borderBottom: 'none' }}>
@@ -181,26 +213,26 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
       {/* Filters */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
         <div style={{ padding: '8px 0', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'flex-end' }}>
-          
+
           <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--app-color-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Icon name="filter" size={16} /> Filter By:
           </div>
 
           {[
-            { id: 'v2-status', label: 'Status', options: ['In Progress', 'Pending Review', 'In Review', 'Changes Requested', 'Approved'] },
+            { id: 'v2-status', label: 'Status', options: ['Review Pending', 'In Review', 'Changes Requested', 'Approved'] },
             { id: 'v2-client', label: 'Client', options: ['Acme Corp', 'Globex Inc', 'Initech', 'Stark Industries'] },
             { id: 'v2-created', label: 'Created By', options: ['Ashika Sharma', 'Sujith Thomas', 'Narendra Patel', 'Gopika Nair', 'Dipali Patil'] }
           ].map(filter => (
-            <FilterDropdown 
-              key={filter.id} 
-              label={filter.label} 
+            <FilterDropdown
+              key={filter.id}
+              label={filter.label}
               options={filter.options}
               selected={filters[filter.id] || null}
               onChange={(val) => setFilters(prev => ({ ...prev, [filter.id]: val }))}
             />
           ))}
 
-          <button 
+          <button
             onClick={() => { setFilters({}); setSearchQuery(''); }}
             style={{
               background: 'transparent',
@@ -224,9 +256,9 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
             <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: isSearchFocused ? 'var(--app-color-primary)' : 'var(--app-color-text-muted)', pointerEvents: 'none', transition: 'all 0.2s ease' }}>
               <Icon name="search" size={14} />
             </div>
-            <input 
-              type="text" 
-              placeholder="Search SOW / Client..." 
+            <input
+              type="text"
+              placeholder="Search SOW / Client..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
@@ -260,11 +292,11 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
               </tr>
             </thead>
             <tbody>
-              {dummyData.map((row, idx) => (
-                <tr 
-                  key={idx} 
-                  style={{ borderBottom: '1px solid var(--app-color-border)', transition: 'background-color 0.15s ease', cursor: 'pointer' }} 
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--app-color-bg)'} 
+              {filteredData.map((row, idx) => (
+                <tr
+                  key={idx}
+                  style={{ borderBottom: '1px solid var(--app-color-border)', transition: 'background-color 0.15s ease', cursor: 'pointer' }}
+                  onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--app-color-bg)'}
                   onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                   onClick={() => onTransitionToDraft?.()}
                 >
@@ -274,20 +306,25 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{row.createdBy}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text-muted)' }}>{row.creationDate}</td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>
-                    <Badge tone="info">
-                      In Progress
-                    </Badge>
+                    {renderDocumentStatus(row.status)}
                   </td>
                 </tr>
               ))}
+              {filteredData.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--app-color-text-muted)', fontSize: '14px' }}>
+                    No reviews found matching the selected filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-        
+
         {/* Pagination */}
         <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--app-color-border)' }}>
           <div style={{ fontSize: '14px', color: 'var(--app-color-text-muted)' }}>
-            Showing 1 to 5 of 87 entries
+            Showing {filteredData.length > 0 ? 1 : 0} to {filteredData.length} of {filteredData.length} entries
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <Button variant="ghost" style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }} disabled>
@@ -319,9 +356,9 @@ export function Review({ onTransitionToDraft }: ReviewProps) {
           </div>
         </div>
       </Card>
-      
+
       {/* Export Toast Modal */}
-      <AlertModal 
+      <AlertModal
         isOpen={!!exportToastMessage}
         onClose={() => setExportToastMessage('')}
         title={exportToastMessage}

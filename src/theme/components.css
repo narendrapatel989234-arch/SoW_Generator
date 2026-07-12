@@ -704,6 +704,11 @@
   color: var(--app-color-success);
 }
 
+.badge[data-tone="warning"] {
+  background: var(--app-color-warning-soft);
+  color: var(--app-color-warning);
+}
+
 .badge[data-tone="danger"] {
   background: var(--app-color-danger-soft);
   color: var(--app-color-danger);
@@ -1205,4 +1210,191 @@
   .supporting-docs-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* MultiSelect Component */
+.multi-select {
+  position: relative;
+  width: 100%;
+}
+
+.multi-select__control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 38px;
+  background-color: var(--app-color-surface);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-sm);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.multi-select__control:hover {
+  border-color: var(--app-color-accent);
+}
+
+.multi-select__control--open {
+  border-color: var(--app-color-accent);
+  box-shadow: 0 0 0 2px var(--app-color-accent-soft);
+}
+
+.multi-select--disabled .multi-select__control {
+  background-color: var(--app-color-surface-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.multi-select__value-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  padding: 2px 0;
+}
+
+.multi-select__placeholder {
+  color: var(--app-color-text-muted);
+  font-size: 13px;
+  padding-left: 4px;
+}
+
+.multi-select__chip {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--app-color-surface-muted);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 4px;
+  color: var(--app-color-text);
+  border: 1px solid var(--app-color-border);
+}
+
+.multi-select__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0 -2px 0 2px;
+  border-radius: 50%;
+  color: var(--app-color-text-muted);
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.multi-select__chip-remove:hover {
+  background-color: var(--app-color-border);
+  color: var(--app-color-danger);
+}
+
+.multi-select__indicators {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
+
+.multi-select__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--app-color-surface);
+  border: 1px solid var(--app-color-border);
+  border-radius: var(--app-radius-sm);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.multi-select__search {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--app-color-border);
+  gap: 8px;
+}
+
+.multi-select__search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  background: transparent;
+  color: var(--app-color-text);
+}
+
+.multi-select__search input::placeholder {
+  color: var(--app-color-text-muted);
+}
+
+.multi-select__options {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.multi-select__option {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.multi-select__option:hover {
+  background-color: var(--app-color-surface-muted);
+}
+
+.multi-select__option--selected {
+  background-color: var(--app-color-accent-soft);
+  color: var(--app-color-primary);
+  font-weight: 500;
+}
+
+.multi-select__option-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--app-color-border);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--app-color-surface);
+  color: var(--app-color-accent);
+}
+
+.multi-select__option--selected .multi-select__option-checkbox {
+  border-color: var(--app-color-accent);
+}
+
+.multi-select__no-options {
+  padding: 12px;
+  text-align: center;
+  color: var(--app-color-text-muted);
+  font-size: 13px;
+}
+
+.multi-select__action {
+  padding: 10px 12px;
+  border-top: 1px solid var(--app-color-border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-color-accent);
+  font-weight: 500;
+  font-size: 13px;
+  cursor: pointer;
+  background-color: var(--app-color-surface);
+}
+
+.multi-select__action:hover {
+  background-color: var(--app-color-accent-soft);
 }

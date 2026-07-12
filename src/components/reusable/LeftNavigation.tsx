@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon, type IconName } from '../ui/Icon';
 
-export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review' | 'validate-sow';
+export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review' | 'validate-sow' | 'activity-log';
 
 export interface NavSection {
   id: string;
@@ -20,8 +20,9 @@ export const navigationSections: NavSection[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
       { id: 'rfp-to-sow', label: 'Upload RFP', icon: 'upload' },
-      { id: 'templates', label: 'Templates', icon: 'file-text' },
-      { id: 'review', label: 'Reviews', icon: 'check-circle' }
+      { id: 'review', label: 'Review', icon: 'check-circle' },
+      { id: 'templates', label: 'Template & Configuration', icon: 'file-text' },
+      { id: 'activity-log', label: 'Activity Log', icon: 'clock' }
     ]
   }
 ];
@@ -76,12 +77,12 @@ export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle }:
       </div>
 
       <div className="app-sidebar__footer">
-        <div className="app-sidebar__user" title={collapsed ? "Dipali Patil" : undefined}>
-          <div className="app-sidebar__avatar">DP</div>
+        <div className="app-sidebar__user" title={collapsed ? "John Doe" : undefined}>
+          <div className="app-sidebar__avatar">JD</div>
           {!collapsed && (
             <div className="app-sidebar__user-copy">
-              <span className="app-sidebar__user-name">Dipali Patil</span>
-              <span className="app-sidebar__user-email">UI/UX Designer</span>
+              <span className="app-sidebar__user-name">John Doe</span>
+              <span className="app-sidebar__user-email">PMO User</span>
             </div>
           )}
         </div>

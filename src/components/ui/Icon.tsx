@@ -2,12 +2,12 @@ import React from 'react';
 
 export type IconName = 
   | 'check' | 'chevron-down' | 'chevron-up' | 'chevron-right' | 'chevron-left' | 'edit' | 'file' | 'trash' | 'upload' | 'download' | 'x' | 'plus'
-  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'user-plus' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'refresh-cw'
+  | 'menu' | 'dashboard' | 'settings' | 'bell' | 'help-circle' | 'user' | 'user-plus' | 'upload-cloud' | 'tag' | 'alert-circle' | 'file-text' | 'check-circle' | 'cloud' | 'shield' | 'activity' | 'arrow-right' | 'arrow-left' | 'refresh-cw'
   | 'loader' | 'copy' | 'hard-drive' | 'eye'
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
   | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip' | 'more-horizontal'
-  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive';
+  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive' | 'clock' | 'info';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -62,6 +62,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></>; break;
     case 'bell':
       path = <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>; break;
+    case 'clock':
+      path = <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>; break;
     case 'help-circle':
       path = <><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>; break;
     case 'user':
@@ -74,6 +76,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>; break;
     case 'arrow-right':
       path = <><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></>; break;
+    case 'arrow-left':
+      path = <><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></>; break;
     case 'edit':
       path = <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>; break;
     case 'refresh-cw':
@@ -161,6 +165,8 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
         </>
       );
       break;
+    case 'info':
+      path = <><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>; break;
     default:
       path = <><circle cx="12" cy="12" r="10" /><text x="12" y="16" fontSize="10" textAnchor="middle" fill="currentColor" stroke="none">{name.substring(0,2).toUpperCase()}</text></>;
   }

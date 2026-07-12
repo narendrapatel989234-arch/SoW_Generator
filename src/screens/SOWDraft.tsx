@@ -7,6 +7,9 @@ import { Badge } from '../components/ui/Badge';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import pptxgen from 'pptxgenjs';
 import { Card } from '../components/ui/Card';
+import { Stepper } from '../components/ui/Stepper';
+import { MultiSelect } from '../components/ui/MultiSelect';
+import { type Section } from '../screens/ValidateSOW';
 
 const initialTocItems = [
   { title: 'Executive Summary', score: 95 },
@@ -91,16 +94,6 @@ const mockActivities: ActivityItem[] = [
     timestamp: new Date(Date.now() - 1000 * 60 * 35)
   },
   {
-    id: 'act-11',
-    category: 'delete',
-    title: 'Paragraph Deleted',
-    description: 'Removed outdated security clause.',
-    sectionName: 'Technical Requirements',
-    user: 'Dipali Balkrishna Patil',
-    timestamp: new Date(Date.now() - 1000 * 60 * 50),
-    previousValue: '"Legacy TLS 1.1 support is required."'
-  },
-  {
     id: 'act-10',
     category: 'generation',
     title: 'Section Regenerated',
@@ -131,16 +124,6 @@ const mockActivities: ActivityItem[] = [
     timestamp: new Date(Date.now() - 1000 * 60 * 120),
     previousValue: '"Cloud migration improves scalability."',
     updatedValue: '"Cloud migration improves scalability, security, and operational efficiency."'
-  },
-  {
-    id: 'act-7',
-    category: 'delete',
-    title: 'Section Deleted',
-    description: 'Commercial Proposal was removed from the document.',
-    sectionName: 'Commercial Proposal',
-    user: 'PMO',
-    timestamp: new Date(Date.now() - 1000 * 60 * 150),
-    previousValue: 'This section contained the detailed commercial proposal, including the pricing breakdown, payment milestones, and billing terms which are now moved to a separate contract.'
   },
   {
     id: 'act-6',
@@ -203,10 +186,50 @@ const mockActivities: ActivityItem[] = [
 interface SOWDraftProps {
   isReviewMode?: boolean;
   selectedSections?: string[];
+  sections?: Section[];
+  setSections?: React.Dispatch<React.SetStateAction<Section[]>>;
+  globalReviewers?: string[];
+  setGlobalReviewers?: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftProps) {
-  const [activeTab, setActiveTab] = useState<'rfp' | 'sow' | 'activity'>('sow');
+export function SOWDraft({ 
+  isReviewMode = false, 
+  selectedSections, 
+  sections = [], 
+  setSections, 
+  globalReviewers = [], 
+  setGlobalReviewers 
+}: SOWDraftProps) {
+  const [activeTab, setActiveTab] = useState<'rfp' | 'configure' | 'sow' | 'activity'>('sow');
+  
+  // Add Reviewer Modal State
+  const [addReviewerSectionId, setAddReviewerSectionId] = useState<string | null>(null);
+  const [newReviewerName, setNewReviewerName] = useState('');
+  const [newReviewerMessage, setNewReviewerMessage] = useState('');
+  const [newReviewerSections, setNewReviewerSections] = useState<string[]>([]);
+  
+  const handleAddReviewer = () => {
+    const trimmedName = newReviewerName.trim();
+    if (trimmedName && newReviewerSections.length > 0 && setSections && setGlobalReviewers) {
+      if (!globalReviewers.includes(trimmedName)) {
+        setGlobalReviewers(prev => [...prev, trimmedName]);
+      }
+      setSections(prev => prev.map(s => {
+        if (newReviewerSections.includes(s.name) && !s.reviewers.includes(trimmedName)) {
+          return { 
+            ...s, 
+            reviewers: [...s.reviewers, trimmedName],
+            reviewerStatuses: { ...(s.reviewerStatuses || {}), [trimmedName]: 'Review Pending' }
+          };
+        }
+        return s;
+      }));
+      setAddReviewerSectionId(null);
+      setNewReviewerName('');
+      setNewReviewerMessage('');
+      setNewReviewerSections([]);
+    }
+  };
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string}[]>(
     selectedSections && selectedSections.length > 0
@@ -230,7 +253,7 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
     if (!isProcessing) return;
     
     let progress = 0;
-    const totalTime = 14000; // 14 seconds total
+    const totalTime = 4000; // 4 seconds total
     const intervalTime = 100;
     
     const timer = setInterval(() => {
@@ -439,6 +462,12 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
         if (approvePopupSection !== null) setApprovePopupSection(null);
         if (regeneratePopupSection !== null) setRegeneratePopupSection(null);
         if (previewFile !== null) setPreviewFile(null);
+        if (addReviewerSectionId !== null) {
+          setAddReviewerSectionId(null);
+          setNewReviewerName('');
+          setNewReviewerMessage('');
+          setNewReviewerSections([]);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -451,12 +480,70 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
     };
   }, [isShareModalOpen, isProcessing, isFadingOut, reviewerPopupSection, approvePopupSection, regeneratePopupSection, previewFile]);
 
+  const getSectionStatus = (section: any) => {
+    if (!section.reviewers || section.reviewers.length === 0) {
+      return 'Review Pending';
+    }
+    const statuses = section.reviewerStatuses || {};
+    let highestPriorityStatus = 'Review Pending';
+    let highestPriority = 0;
+    
+    // Priority order:
+    // 4. Changes Requested
+    // 3. In Review
+    // 2. Approved
+    // 1. Review Pending
+
+    section.reviewers.forEach((r: string) => {
+      const s = statuses[r] || 'Review Pending';
+      let priority = 1;
+      if (s === 'Changes Requested') priority = 4;
+      else if (s === 'In Review') priority = 3;
+      else if (s === 'Approved') priority = 2;
+      else if (s === 'Review Pending') priority = 1;
+      
+      if (priority > highestPriority) {
+        highestPriority = priority;
+        highestPriorityStatus = s;
+      }
+    });
+    return highestPriorityStatus;
+  };
+
+  const renderStatus = (section: any) => {
+    const highestPriorityStatus = getSectionStatus(section);
+
+    let tone = 'warning';
+    switch (highestPriorityStatus) {
+      case 'Changes Requested': tone = 'danger'; break;
+      case 'In Review': tone = 'info'; break;
+      case 'Review Pending': tone = 'warning'; break;
+      case 'Approved': tone = 'success'; break;
+    }
+
+    return (
+      <Badge tone={tone as any}>
+        {highestPriorityStatus}
+      </Badge>
+    );
+  };
+
   return (
     <>
     <div style={{ 
       display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden', minHeight: 0,
       pointerEvents: isProcessing ? 'none' : 'auto'
     }}>
+      <div style={{ padding: '0 24px', paddingTop: '16px' }}>
+        <Stepper 
+          steps={[
+            { id: 'analyze', label: 'Analyze' },
+            { id: 'configure', label: 'Configure' },
+            { id: 'generate', label: 'Generate' }
+          ]} 
+          currentStepId="generate" 
+        />
+      </div>
       {/* Header */}
       <div className="screen-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--app-color-border)' }}>
         {/* Tabs */}
@@ -466,6 +553,12 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
               onClick={() => setActiveTab('rfp')}
             >
               RFP
+            </button>
+            <button 
+              className={`tab-item ${activeTab === 'configure' ? 'active' : ''}`}
+              onClick={() => setActiveTab('configure')}
+            >
+              Configure Sections
             </button>
             <button 
               className={`tab-item ${activeTab === 'sow' ? 'active' : ''}`}
@@ -922,6 +1015,79 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
           </div>
         )}
 
+        {activeTab === 'configure' && (
+          <div className="page-container" style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '24px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+              <Card title={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div>Configure Sections & Reviewers</div>
+                  <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', fontWeight: 400 }}>
+                    Review the selected sections and manage reviewer assignments before submitting the document for review.
+                  </div>
+                </div>
+              }>
+                <div style={{ margin: '-24px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: '#f9fafb' }}>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '10%' }}>Section No.</th>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '30%' }}>Section Name</th>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '42%' }}>Reviewer</th>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '18%' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ animation: 'simpleFade 0.3s ease-in' }}>
+                      {sections.filter(s => s.included).map((section, idx, arr) => {
+                        const sectionStatus = getSectionStatus(section);
+                        return (
+                        <tr key={section.id} style={{ 
+                          borderBottom: idx === arr.length - 1 ? 'none' : '1px solid var(--app-color-border)', 
+                          backgroundColor: 'white',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'white')}
+                        >
+                          <td style={{ padding: '16px 24px', fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 500 }}>{section.no}</td>
+                          <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 500, color: 'var(--app-color-text)' }}>{section.name}</td>
+                          <td style={{ padding: '16px 24px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <MultiSelect 
+                                options={Object.keys(section.reviewerStatuses || {})}
+                                value={section.reviewers}
+                                onChange={(val) => {
+                                  if (setSections) {
+                                    setSections(prev => prev.map(s => s.id === section.id ? { ...s, reviewers: val } : s));
+                                  }
+                                }}
+                                disabled={sectionStatus === 'Approved'}
+                                placeholder="Select Reviewers..."
+                                actionLabel="+ Add Reviewer"
+                                onActionClick={() => {
+                                  setAddReviewerSectionId(section.id);
+                                  setNewReviewerSections([section.name]);
+                                }}
+                              />
+                              {section.reviewers.length === 0 && (
+                                <div style={{ color: 'var(--app-color-danger)', fontSize: '12px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                                  <Icon name="alert-circle" size={12} /> At least one reviewer must be assigned to each section.
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: '16px 24px' }}>
+                            {renderStatus(section)}
+                          </td>
+                        </tr>
+                      )})}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'activity' && (
           <div className="page-container" style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '24px' }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto', backgroundColor: 'var(--app-color-surface)', borderRadius: '12px', border: '1px solid var(--app-color-border)', padding: '32px 48px' }}>
@@ -1333,6 +1499,103 @@ export function SOWDraft({ isReviewMode = false, selectedSections }: SOWDraftPro
                   <>Add Reviewer</>
                 )}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addReviewerSectionId && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.5)',
+          backdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            backgroundColor: 'var(--app-color-surface)',
+            width: '520px',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: '1px solid var(--app-color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--app-color-text)' }}>
+                <Icon name="user-plus" size={24} />
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Add Reviewer</h3>
+              </div>
+              <button 
+                onClick={() => { setAddReviewerSectionId(null); setNewReviewerName(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--app-color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
+              >
+                <Icon name="x" size={20} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '14px', color: 'var(--app-color-text)', display: 'flex', alignItems: 'center', fontWeight: 500 }}>
+                  Reviewer <span style={{ color: 'var(--app-color-danger)', marginLeft: '4px' }}>*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={newReviewerName}
+                  onChange={(e) => setNewReviewerName(e.target.value)}
+                  placeholder="Search by name or email..."
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--app-color-border)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '14px', color: 'var(--app-color-text)', display: 'flex', alignItems: 'center', fontWeight: 500 }}>
+                  Assigned Sections <span style={{ color: 'var(--app-color-danger)', marginLeft: '4px' }}>*</span>
+                </label>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <MultiSelect 
+                    options={sections.filter(s => s.included).map(s => s.name)}
+                    value={newReviewerSections}
+                    onChange={setNewReviewerSections}
+                    placeholder="Select sections..."
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 500 }}>Message <span style={{ color: 'var(--app-color-text-muted)', fontWeight: 400 }}>(Optional)</span></label>
+                <textarea 
+                  value={newReviewerMessage}
+                  onChange={(e) => setNewReviewerMessage(e.target.value)}
+                  placeholder="Add an optional note for the reviewer"
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--app-color-border)',
+                    fontSize: '14px',
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    minHeight: '100px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '20px 24px', borderTop: '1px solid var(--app-color-border)' }}>
+              <Button variant="secondary" onClick={() => { setAddReviewerSectionId(null); setNewReviewerName(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}>Cancel</Button>
+              <Button variant="accent" onClick={handleAddReviewer} disabled={!newReviewerName.trim() || newReviewerSections.length === 0} style={{ opacity: (!newReviewerName.trim() || newReviewerSections.length === 0) ? 0.6 : 1 }}>Add Reviewer</Button>
             </div>
           </div>
         </div>

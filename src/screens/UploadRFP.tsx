@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Icon } from '../components/ui/Icon';
 import { AlertModal } from '../components/ui/AlertModal';
+import { Stepper, type Step } from '../components/ui/Stepper';
 
 const mockPreviousSOWs = [
   {
@@ -42,10 +43,15 @@ const mockPreviousSOWs = [
 ];
 
 const EXTRACTION_MESSAGES = [
-  "Analyzing RFP document structure...",
-  "Identifying business context...",
-  "Extracting technical requirements...",
-  "Finalizing applicable tags..."
+  "Analyzing document and extracting critical tags..."
+];
+
+const PREPARING_MESSAGES = [
+  'Reading uploaded documents...',
+  'Analyzing requirements...',
+  'Matching the selected template...',
+  'Preparing document sections...',
+  'Finalizing configuration...'
 ];
 
 interface UploadRFPProps {
@@ -63,6 +69,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [hasTriedSubmit, setHasTriedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [rfpError, setRfpError] = useState('');
   const [supportError, setSupportError] = useState('');
@@ -76,7 +83,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const isInitialMount = React.useRef(true);
 
   React.useEffect(() => {
-    if (previewFile || isExtracting) {
+    if (previewFile) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -92,7 +99,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
       document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [previewFile, isExtracting]);
+  }, [previewFile]);
 
   React.useEffect(() => {
     if (isInitialMount.current) {
@@ -113,19 +120,27 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     }
   }, [tags]);
 
+  React.useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isSubmitting) {
+      setLoadingMessageIndex(0);
+      interval = setInterval(() => {
+        setLoadingMessageIndex(prev => {
+          if (prev < PREPARING_MESSAGES.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isSubmitting]);
+
   const handleExtractTags = () => {
     setIsExtracting(true);
-    setExtractionMessage(EXTRACTION_MESSAGES[0]);
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step < EXTRACTION_MESSAGES.length) {
-        setExtractionMessage(EXTRACTION_MESSAGES[step]);
-      }
-    }, 1000);
+    setExtractionMessage("Analyzing document and extracting critical tags...");
 
     setTimeout(() => {
-      clearInterval(interval);
       const dummyTags = ['Healthcare', 'Security', 'Cloud', 'Azure', 'Migration', 'IT Infrastructure'];
       setTags(prev => {
         const newTags = dummyTags.filter(t => !prev.includes(t));
@@ -143,17 +158,9 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
   const submitRegenerateTags = () => {
     setRegenerateTagsModalOpen(false);
     setIsExtracting(true);
-    setExtractionMessage(EXTRACTION_MESSAGES[0]);
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      if (step < EXTRACTION_MESSAGES.length) {
-        setExtractionMessage(EXTRACTION_MESSAGES[step]);
-      }
-    }, 1000);
+    setExtractionMessage("Analyzing document and extracting critical tags...");
 
     setTimeout(() => {
-      clearInterval(interval);
       const regeneratedTags = ['Cloud', 'Modernization', 'Security', 'Enterprise', 'DevOps', 'Infrastructure'];
       if (regenerateInstructions) regeneratedTags.push('Custom Instruction');
       setTags(regeneratedTags.slice(0, 10));
@@ -166,9 +173,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     setRfpError('');
     if (files.length > 0) {
       setRfpFiles([files[0]]);
-      setTimeout(() => {
-        handleExtractTags();
-      }, 1500);
+      handleExtractTags();
     }
   };
   const handleRfpFileRemove = (index: number) => {
@@ -270,13 +275,25 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
     if (rfpFiles.length === 0) return;
     
     setIsSubmitting(true);
-    onTransitionToDraft?.();
+    // Simulate backend processing time for generating document sections
+    setTimeout(() => {
+      setIsSubmitting(false);
+      onTransitionToDraft?.();
+    }, 5500); // Wait long enough for messages to cycle
   };
 
   return (
     <>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '100%', paddingBottom: '32px' }}>
+        <Stepper 
+          steps={[
+            { id: 'analyze', label: 'Analyze' },
+            { id: 'configure', label: 'Configure' },
+            { id: 'generate', label: 'Generate' }
+          ]} 
+          currentStepId="analyze" 
+        />
+
         <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -352,7 +369,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                     {isExtracting ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
-                          {[1, 2, 3, 4, 5, 6].map(i => (
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => (
                             <div key={i} className="shimmer-effect" style={{ height: '28px', width: `${Math.floor(Math.random() * (120 - 70 + 1) + 70)}px`, borderRadius: '24px' }} />
                           ))}
                         </div>
@@ -631,17 +648,13 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             ? 'Please upload an RFP document to proceed.' 
             : tags.length === 0 
               ? 'Please add or extract tags to proceed.' 
-              : 'Ready to validate and check SOW sections.'}
+              : 'Ready to continue.'}
         </div>
         <Button variant="secondary" onClick={handleClear} disabled={isSubmitting}>
           <Icon name="x" size={16} /> Clear
         </Button>
         <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || tags.length === 0 || isSubmitting}>
-          {isSubmitting ? (
-            <><Icon name="loader" size={16} className="icon-spin" /> Validating...</>
-          ) : (
-            <><Icon name="check-circle" size={16} /> Validate and Check SOW Sections <Icon name="arrow-right" size={16} /></>
-          )}
+          <Icon name="check-circle" size={16} /> Continue <Icon name="arrow-right" size={16} />
         </Button>
       </div>
 
@@ -1030,7 +1043,63 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
         </div>
       )}
 
-
+      {/* AI Processing Overlay */}
+      {isSubmitting && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.4)',
+          zIndex: 3000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+          animation: 'simpleFade 0.3s ease-out'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--app-color-surface)',
+            padding: '32px 40px',
+            borderRadius: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            maxWidth: '400px',
+            textAlign: 'center'
+          }}>
+            <Icon name="loader" size={40} className="icon-spin" style={{ color: 'var(--app-color-accent)' }} />
+            <div>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>
+                Preparing Document Sections
+              </h3>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Analyzing the uploaded RFP and preparing the document sections based on the selected template.<br /><br />
+                This may take a few seconds.
+              </p>
+            </div>
+            
+            <div style={{
+              marginTop: '8px',
+              padding: '12px 16px',
+              backgroundColor: 'var(--app-color-surface-muted)',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--app-color-primary)',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}>
+              <span key={loadingMessageIndex} style={{ animation: 'simpleFade 0.4s ease-out' }}>
+                {PREPARING_MESSAGES[loadingMessageIndex]}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes slideInRight {
