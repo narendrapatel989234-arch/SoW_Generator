@@ -163,7 +163,7 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-primary)', fontWeight: 500 }}>{sec.name}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text-muted)' }}>{sec.desc}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>
-                      <Badge tone={sec.mandatory ? 'info' : 'neutral'}>{sec.mandatory ? 'Mandatory' : 'Optional'}</Badge>
+                      <Badge tone={sec.mandatory ? 'info' : 'default'}>{sec.mandatory ? 'Mandatory' : 'Optional'}</Badge>
                     </td>
                   </tr>
                 ))}
@@ -232,7 +232,7 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
       </div>
 
       {activeView === 'list' && (
-        <Card style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Card className="card-flex-column">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <div style={{ position: 'relative', width: '260px' }}>
@@ -298,7 +298,7 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
       )}
 
       {activeView === 'configuration' && (
-        <Card style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: '24px' }}>
+        <Card className="card-flex-column card-gap-24">
 
           {configValidationError && (
             <div style={{ color: 'var(--app-color-danger)', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -322,7 +322,7 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{sec.no}</td>
                     <td style={{ padding: '16px', fontSize: '14px', color: 'var(--app-color-text)' }}>{sec.name}</td>
                     <td style={{ padding: '16px', fontSize: '14px' }}>
-                      <Badge tone={sec.mandatory ? 'info' : 'neutral'}>{sec.mandatory ? 'Yes' : 'No'}</Badge>
+                      <Badge tone={sec.mandatory ? 'info' : 'default'}>{sec.mandatory ? 'Yes' : 'No'}</Badge>
                     </td>
                     <td style={{ padding: '16px' }}>
                       <MultiSelect 
@@ -375,12 +375,12 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
 
       <AlertModal 
         isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
         title="Delete Template?"
-        message="Are you sure you want to delete this template? This action cannot be undone."
-        type="danger"
-        confirmLabel="Delete"
-        onConfirm={() => setShowDeleteModal(false)}
-        onCancel={() => setShowDeleteModal(false)}
+        description="Are you sure you want to delete this template? This action cannot be undone."
+        type="error"
+        showOkButton={true}
+        okButtonText="Delete"
       />
     </div>
   );

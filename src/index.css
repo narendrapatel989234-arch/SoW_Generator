@@ -67,3 +67,13 @@
   box-shadow: 0 0 0 3px var(--app-color-accent-soft);
   background-color: var(--app-color-surface);
 }
+
+.card-flex-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-gap-24 {
+  gap: 24px;
+}
