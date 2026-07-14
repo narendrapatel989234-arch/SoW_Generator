@@ -238,9 +238,6 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
                 <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)', margin: '0 0 4px 0' }}>Sections & Reviewers</h3>
                 <p style={{ fontSize: '14px', color: 'var(--app-color-text-muted)', margin: 0 }}>Manage the sections included in this template and their assigned reviewers.</p>
               </div>
-              <Button variant="accent" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', padding: '6px 12px' }}>
-                <Icon name="plus" size={14} /> Add Section
-              </Button>
             </div>
             <div style={{ overflowX: 'auto', border: '1px solid var(--app-color-border)', borderRadius: '8px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -583,13 +580,6 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
                     style={{ color: 'var(--app-color-text-muted)', width: '28px', height: '28px', opacity: tpl.disabled ? 0.5 : 1 }}
                   >
                     <Icon name="edit" size={14} />
-                  </IconButton>
-                  <IconButton 
-                    label="Delete Template" 
-                    onClick={(e) => handleAction(e, 'Delete')}
-                    style={{ color: 'var(--app-color-danger)', width: '28px', height: '28px', opacity: tpl.disabled ? 0.5 : 1 }}
-                  >
-                    <Icon name="trash" size={14} />
                   </IconButton>
                 </div>
                 <Badge tone={tpl.status === 'Active' ? 'success' : 'default'}>{tpl.status}</Badge>

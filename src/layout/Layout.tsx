@@ -59,6 +59,7 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
           }
           onBreadcrumbClick={
             activeScreen === 'validate-sow' ? () => setActiveScreen('rfp-to-sow') : 
+            (activeScreen === 'sow-draft' || activeScreen === 'sow-draft-review' || activeScreen === 'sow-draft-approved') ? () => setActiveScreen('review') :
             (activeScreen === 'templates' && templatesView === 'details') ? () => setTemplatesView('list') : 
             undefined
           }
@@ -98,6 +99,7 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
               setSections={setSections}
               globalReviewers={globalReviewers}
               setGlobalReviewers={setGlobalReviewers}
+              onSubmitFinal={() => setActiveScreen('sow-draft-approved')}
               userRole={userRole}
             />
           )}
@@ -128,6 +130,7 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
             <Review 
               userRole={userRole}
               onTransitionToDraft={(docId, status) => {
+              setSelectedSections([]);
               if (status === 'In Review') {
                 setActiveScreen('sow-draft-review');
               } else if (status === 'Approved') {

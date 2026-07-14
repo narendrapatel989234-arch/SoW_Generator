@@ -104,14 +104,14 @@ function FilterDropdown({ label, options, selected, onChange }: { label: string,
 }
 
 export function Review({ userRole = 'PMO', onTransitionToDraft }: ReviewProps) {
-  const [activeTab, setActiveTab] = useState(userRole === 'Reviewer' ? 'In Review' : 'All');
+  const [activeTab, setActiveTab] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [isV1SearchFocused, setIsV1SearchFocused] = useState(false);
   const [exportToastMessage, setExportToastMessage] = useState('');
   const [filters, setFilters] = useState<Record<string, string | null>>({});
 
-  const displayData = userRole === 'Reviewer' ? dummyData.filter(d => d.status === 'In Review' || d.status === 'Approved') : dummyData;
+  const displayData = dummyData.filter(d => d.status === 'In Review' || d.status === 'Approved');
 
   const handleExportExcel = () => {
     setExportToastMessage('Excel export started...');
@@ -143,12 +143,8 @@ export function Review({ userRole = 'PMO', onTransitionToDraft }: ReviewProps) {
 
   const getCount = (status: string) => displayData.filter(d => d.status === status).length;
 
-  const tabs = userRole === 'Reviewer' ? [
-    { label: 'In Review', count: getCount('In Review') },
-    { label: 'Approved', count: getCount('Approved') }
-  ] : [
+  const tabs = [
     { label: 'All', count: displayData.length },
-    { label: 'Draft', count: getCount('Draft') },
     { label: 'In Review', count: getCount('In Review') },
     { label: 'Approved', count: getCount('Approved') }
   ];
@@ -258,10 +254,6 @@ function StatusBadgeCell({ status, reviewCounts }: { status: string, reviewCount
                 <span style={{ color: 'var(--app-color-text-muted)' }}>📥 Awaiting PMO :</span>
                 <span style={{ fontWeight: 600 }}>{reviewCounts.awaitingPMO || 0}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                <span style={{ color: 'var(--app-color-text-muted)' }}>🔁 Rework :</span>
-                <span style={{ fontWeight: 600 }}>{reviewCounts.rework || 0}</span>
-              </div>
             </div>
           ) : (
             <div style={{ fontSize: '13px', color: 'var(--app-color-text-muted)' }}>
@@ -321,7 +313,7 @@ function StatusBadgeCell({ status, reviewCounts }: { status: string, reviewCount
           </div>
 
           {[
-            { id: 'v2-status', label: 'Status', options: ['Draft', 'In Review', 'Approved'] },
+            { id: 'v2-status', label: 'Status', options: ['In Review', 'Approved'] },
             { id: 'v2-client', label: 'Client', options: ['Acme Corp', 'Globex Inc', 'Initech', 'Stark Industries'] },
             { id: 'v2-created', label: 'Created By', options: ['Ashika Sharma', 'Sujith Thomas', 'Narendra Patel', 'Gopika Nair', 'Dipali Patil'] }
           ].map(filter => (

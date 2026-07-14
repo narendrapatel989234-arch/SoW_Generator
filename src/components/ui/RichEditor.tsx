@@ -8,11 +8,35 @@ interface RichEditorProps {
   readOnly?: boolean;
   children?: React.ReactNode;
   onSectionChange?: (index: number) => void;
+  lockedSections?: boolean[];
+  onShowToast?: (msg: string) => void;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
+
+  // AI Regeneration State
+  const [showRegenerateFloating, setShowRegenerateFloating] = useState(false);
+  const [floatingPos, setFloatingPos] = useState({ top: 0, left: 0 });
+  const [selectedText, setSelectedText] = useState("");
+  const [savedSelectionRange, setSavedSelectionRange] = useState<Range | null>(null);
+
+  const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
+  const [regenerationInstructions, setRegenerationInstructions] = useState("");
+  const [isRegeneratingText, setIsRegeneratingText] = useState(false);
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (isRegenerateModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isRegenerateModalOpen]);
 
   const [contentHtml, setContentHtml] = useState<string>(() => {
     return tocItems.map((item, idx) => {
@@ -139,6 +163,22 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     }
   }, [isGenerating, contentHtml]);
 
+  // Apply contenteditable false to locked sections
+  useEffect(() => {
+    if (!editorRef.current || !lockedSections) return;
+    
+    lockedSections.forEach((isLocked, idx) => {
+      const sectionEl = document.getElementById(`sow-section-${idx}`);
+      if (sectionEl) {
+        // Only override if the parent editor is not globally readOnly
+        if (!readOnly) {
+          sectionEl.contentEditable = isLocked ? "false" : "true";
+          sectionEl.style.opacity = isLocked ? "0.7" : "1";
+        }
+      }
+    });
+  }, [lockedSections, readOnly, contentHtml]);
+
   // Scroll to section when TOC item is clicked
   useEffect(() => {
     if (!onSectionChange) return;
@@ -166,6 +206,88 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
 
     return () => observer.disconnect();
   }, [tocItems.length, onSectionChange]);
+
+  // Handle text selection for AI Regeneration
+  useEffect(() => {
+    const handleSelectionEnd = () => {
+      if (readOnly || isGenerating || isRegenerateModalOpen) return;
+
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+          setShowRegenerateFloating(false);
+          return;
+        }
+
+        const range = selection.getRangeAt(0);
+        const text = range.toString().trim();
+        
+        if (!text || text.length === 0) {
+          setShowRegenerateFloating(false);
+          return;
+        }
+
+        // Check if selection is inside editor
+        if (!editorRef.current || !editorRef.current.contains(range.commonAncestorContainer)) {
+          setShowRegenerateFloating(false);
+          return;
+        }
+
+        // Check if the section is locked
+        let isLocked = false;
+        let node: HTMLElement | null = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+          ? range.commonAncestorContainer.parentElement 
+          : range.commonAncestorContainer as HTMLElement;
+          
+        while (node && node !== editorRef.current) {
+          if (node.id && node.id.startsWith('sow-section-')) {
+            const idx = parseInt(node.id.replace('sow-section-', ''), 10);
+            if (lockedSections && lockedSections[idx]) {
+              isLocked = true;
+            }
+            break;
+          }
+          node = node.parentElement;
+        }
+
+        if (isLocked) {
+          setShowRegenerateFloating(false);
+          return;
+        }
+
+        // Get position relative to editor container
+        const scrollArea = document.getElementById('sow-editor-scroll-area');
+        if (!scrollArea) return;
+
+        const rect = range.getBoundingClientRect();
+        const scrollAreaRect = scrollArea.getBoundingClientRect();
+
+        // Position near the top-center of the selection
+        const top = rect.top - scrollAreaRect.top + scrollArea.scrollTop - 48;
+        const left = rect.left - scrollAreaRect.left + (rect.width / 2) - 65; 
+
+        setFloatingPos({ top: Math.max(0, top), left: Math.max(0, left) });
+        setSelectedText(text);
+        setSavedSelectionRange(range.cloneRange());
+        setShowRegenerateFloating(true);
+      }, 10);
+    };
+
+    const handleSelectionChange = () => {
+      // Hide button while actively selecting text
+      setShowRegenerateFloating(false);
+    };
+
+    document.addEventListener('mouseup', handleSelectionEnd);
+    document.addEventListener('keyup', handleSelectionEnd);
+    document.addEventListener('selectionchange', handleSelectionChange);
+    
+    return () => {
+      document.removeEventListener('mouseup', handleSelectionEnd);
+      document.removeEventListener('keyup', handleSelectionEnd);
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, [readOnly, isGenerating, isRegenerateModalOpen, lockedSections]);
 
   const handleContentChange = () => {
     if (editorRef.current && !isGenerating) {
@@ -246,6 +368,9 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     }
   };
 
+  const isCurrentSectionLocked = lockedSections ? lockedSections[activeSectionIndex] : false;
+  const isToolbarDisabled = isGenerating || isCurrentSectionLocked;
+
   const ToolbarButton = ({ icon, command, value, title, isActive }: { icon: IconName, command: string, value?: string, title: string, isActive?: boolean }) => (
     <button 
       title={title}
@@ -255,7 +380,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
         e.preventDefault();
         execCmd(command, value);
       }}
-      disabled={isGenerating}
+      disabled={isToolbarDisabled}
     >
       <Icon name={icon} size={16} />
     </button>
@@ -266,7 +391,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
       
       {/* Toolbar */}
       {!readOnly && (
-        <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
+        <div className={`editor-toolbar ${isToolbarDisabled ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
         
         <ToolbarButton icon="undo" command="undo" title="Undo" />
         <ToolbarButton icon="redo" command="redo" title="Redo" />
@@ -277,7 +402,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           className="toolbar-select"
           onChange={(e) => execCmd('fontSize', e.target.value)}
           defaultValue="15"
-          disabled={isGenerating}
+          disabled={isToolbarDisabled}
           title="Font Size"
         >
           <option value="15" disabled hidden>Size</option>
@@ -292,7 +417,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           className="toolbar-select"
           onChange={(e) => execCmd('formatBlock', e.target.value)}
           defaultValue="P"
-          disabled={isGenerating}
+          disabled={isToolbarDisabled}
           title="Paragraph Style"
         >
           <option value="P">Normal</option>
@@ -354,7 +479,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
         overflowY: 'auto', 
         backgroundColor: 'var(--app-color-surface-muted)',
         padding: '32px 24px 64px 24px',
-        display: 'block'
+        display: 'block',
+        position: 'relative'
       }}>
         {/* Document Card */}
         <div style={{
@@ -394,7 +520,206 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
         
         {/* Bottom spacer to prevent margin collapse and ensure scrolling gap */}
         <div style={{ height: '64px', width: '100%' }}></div>
+
+        {/* Floating Regenerate Button */}
+        {showRegenerateFloating && !isRegenerateModalOpen && (
+          <div 
+            className="smooth-enter"
+            style={{
+              position: 'absolute',
+              top: `${floatingPos.top}px`,
+              left: `${floatingPos.left}px`,
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'var(--app-color-primary)',
+              color: 'white',
+              padding: '8px 16px',
+              borderRadius: '24px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(13, 33, 44, 0.2)',
+              fontSize: '13px',
+              fontWeight: 500,
+              transition: 'all 0.2s ease'
+            }}
+            onMouseDown={(e) => {
+              // Prevent default to keep selection active in the editor
+              e.preventDefault(); 
+            }}
+            onClick={() => {
+              setShowRegenerateFloating(false);
+              setIsRegenerateModalOpen(true);
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(13, 33, 44, 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(13, 33, 44, 0.2)';
+            }}
+          >
+            <Icon name="sparkles" size={14} />
+            Regenerate
+          </div>
+        )}
       </div>
+
+      {/* Regenerate Modal */}
+      {isRegenerateModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1050
+        }} onClick={() => setIsRegenerateModalOpen(false)}>
+          <div className="context-menu-animate" style={{
+            backgroundColor: 'var(--app-color-surface)',
+            borderRadius: '16px',
+            width: '420px',
+            maxWidth: '90vw',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div style={{ padding: '24px 32px 20px', borderBottom: '1px solid var(--app-color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '8px',
+                  backgroundColor: 'var(--app-color-accent-soft)',
+                  color: 'var(--app-color-primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Icon name="sparkles" size={18} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>
+                  Regenerate Selected Content
+                </h3>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', margin: '12px 0 0 0', lineHeight: 1.5 }}>
+                Generate an improved version of the selected content while preserving the overall context of the document.
+              </p>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px 32px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', marginBottom: '8px' }}>
+                  Additional Instructions
+                </label>
+                <textarea 
+                  value={regenerationInstructions}
+                  onChange={(e) => setRegenerationInstructions(e.target.value)}
+                  disabled={isRegeneratingText}
+                  placeholder="Examples: Make it more professional, Improve clarity, Rewrite in formal tone, Shorten the content..."
+                  style={{
+                    width: '100%',
+                    minHeight: '100px',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--app-color-border)',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'none',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--app-color-primary)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--app-color-border)'}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{ padding: '20px 32px', borderTop: '1px solid var(--app-color-border)', backgroundColor: '#f9fafb', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                disabled={isRegeneratingText}
+                onClick={() => {
+                  setIsRegenerateModalOpen(false);
+                  setRegenerationInstructions("");
+                }}
+                style={{ 
+                  padding: '10px 24px', 
+                  backgroundColor: 'transparent', 
+                  border: '1px solid var(--app-color-border)', 
+                  borderRadius: '8px', 
+                  cursor: isRegeneratingText ? 'not-allowed' : 'pointer',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  color: 'var(--app-color-text)',
+                  opacity: isRegeneratingText ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              
+              <button 
+                disabled={isRegeneratingText || regenerationInstructions.trim() === ''}
+                onClick={() => {
+                  setIsRegeneratingText(true);
+                  // Simulate AI API call
+                  setTimeout(() => {
+                    setIsRegeneratingText(false);
+                    setIsRegenerateModalOpen(false);
+                    
+                    // Generate mock replacement
+                    const mockImprovedText = regenerationInstructions.trim() 
+                      ? `[Improved to align with "${regenerationInstructions}"]: ${selectedText}`
+                      : `[Improved for clarity]: ${selectedText}`;
+
+                    // Restore selection and replace text natively
+                    if (savedSelectionRange) {
+                      const selection = window.getSelection();
+                      if (selection) {
+                        selection.removeAllRanges();
+                        selection.addRange(savedSelectionRange);
+                        // Using execCommand to natively support Undo
+                        document.execCommand('insertText', false, mockImprovedText);
+                        
+                        if (onShowToast) {
+                          onShowToast("Selected content regenerated successfully.");
+                        }
+                      }
+                    }
+                    
+                    setRegenerationInstructions("");
+                  }, 1500);
+                }}
+                style={{ 
+                  padding: '10px 24px', 
+                  backgroundColor: 'var(--app-color-primary)', 
+                  border: 'none', 
+                  borderRadius: '8px', 
+                  cursor: (isRegeneratingText || regenerationInstructions.trim() === '') ? 'not-allowed' : 'pointer',
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  opacity: (isRegeneratingText || regenerationInstructions.trim() === '') ? 0.5 : 1
+                }}
+              >
+                {isRegeneratingText ? (
+                  <>
+                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 1s linear infinite' }} />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Icon name="sparkles" size={16} />
+                    Regenerate
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

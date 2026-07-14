@@ -139,35 +139,34 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
           </div>
         </div>
 
-        <div style={{ padding: '24px' }}>
-          <div style={{ margin: '-24px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '120px', whiteSpace: 'nowrap' }}>Section No.</th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '200px' }}>Section Name</th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '280px' }}>Description</th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', textAlign: 'center', width: '150px', whiteSpace: 'nowrap' }}>Include In SOW</th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '380px' }}>Reviewer</th>
+            <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: 'var(--app-color-surface-muted)' }}>
+              <th style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', width: '120px', whiteSpace: 'nowrap' }}>Section No.</th>
+              <th style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', width: '200px' }}>Section Name</th>
+              <th style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', width: '280px' }}>Description</th>
+              <th style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)', textAlign: 'center', width: '150px', whiteSpace: 'nowrap' }}>Include In SOW</th>
+              <th style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text-muted)' }}>Reviewer</th>
             </tr>
           </thead>
           <tbody style={{ animation: 'simpleFade 0.3s ease-in' }}>
             {isLoading ? (
               Array(8).fill(0).map((_, i) => (
                 <tr key={i} style={{ borderBottom: i === 7 ? 'none' : '1px solid var(--app-color-border)' }}>
-                  <td style={{ padding: '16px 24px' }}>
+                  <td style={{ padding: '16px' }}>
                     <div style={{ height: '16px', width: '30px', backgroundColor: '#f3f4f6', borderRadius: '4px', animation: 'pulse 1.5s infinite ease-in-out' }} />
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
+                  <td style={{ padding: '16px' }}>
                     <div style={{ height: '16px', width: '150px', backgroundColor: '#f3f4f6', borderRadius: '4px', animation: 'pulse 1.5s infinite ease-in-out' }} />
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
+                  <td style={{ padding: '16px' }}>
                     <div style={{ height: '16px', width: '250px', backgroundColor: '#f3f4f6', borderRadius: '4px', animation: 'pulse 1.5s infinite ease-in-out' }} />
                   </td>
-                  <td style={{ padding: '16px 24px', display: 'flex', justifyContent: 'center' }}>
+                  <td style={{ padding: '16px', display: 'flex', justifyContent: 'center' }}>
                     <div style={{ height: '24px', width: '44px', backgroundColor: '#f3f4f6', borderRadius: '12px', animation: 'pulse 1.5s infinite ease-in-out' }} />
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
+                  <td style={{ padding: '16px' }}>
                     <div style={{ height: '34px', width: '100%', backgroundColor: '#f3f4f6', borderRadius: '6px', animation: 'pulse 1.5s infinite ease-in-out' }} />
                   </td>
                 </tr>
@@ -178,10 +177,10 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
                   borderBottom: idx === sections.length - 1 ? 'none' : '1px solid var(--app-color-border)', 
                   backgroundColor: 'white'
                 }}>
-                  <td style={{ padding: '16px 24px', fontSize: '14px', color: section.included ? 'var(--app-color-text)' : 'var(--app-color-text-muted)', fontWeight: 500 }}>{section.no}</td>
-                  <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 500, color: section.included ? 'var(--app-color-text)' : 'var(--app-color-text-muted)' }}>{section.name}</td>
-                  <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--app-color-text-muted)', maxWidth: '240px', lineHeight: 1.5 }}>{section.description}</td>
-                  <td style={{ padding: '16px 24px', textAlign: 'center' }}>
+                  <td style={{ padding: '16px', fontSize: '14px', color: section.included ? 'var(--app-color-text)' : 'var(--app-color-text-muted)', fontWeight: 500 }}>{section.no}</td>
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500, color: section.included ? 'var(--app-color-text)' : 'var(--app-color-text-muted)' }}>{section.name}</td>
+                  <td style={{ padding: '16px', fontSize: '13px', color: 'var(--app-color-text-muted)', maxWidth: '240px', lineHeight: 1.5 }}>{section.description}</td>
+                  <td style={{ padding: '16px', textAlign: 'center' }}>
                     <div 
                       onClick={() => toggleSection(section.id)}
                       style={{ 
@@ -207,8 +206,8 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
                       }} />
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <td style={{ padding: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '380px' }}>
                       <MultiSelect 
                         options={globalReviewers}
                         value={section.reviewers}
@@ -228,7 +227,6 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
             )}
             </tbody>
           </table>
-          </div>
         </div>
       </Card>
 
