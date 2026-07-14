@@ -1,7 +1,7 @@
 import React from 'react';
 import { Icon, type IconName } from '../ui/Icon';
 
-export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review' | 'validate-sow' | 'activity-log';
+export type ScreenId = 'dashboard' | 'rfp-to-sow' | 'templates' | 'review' | 'settings' | 'sow-draft' | 'sow-draft-review' | 'sow-draft-approved' | 'sow-draft-edit' | 'validate-sow' | 'activity-log';
 
 export interface NavSection {
   id: string;
@@ -21,8 +21,7 @@ export const navigationSections: NavSection[] = [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
       { id: 'rfp-to-sow', label: 'Upload RFP', icon: 'upload' },
       { id: 'review', label: 'Review', icon: 'check-circle' },
-      { id: 'templates', label: 'Template & Configuration', icon: 'file-text' },
-      { id: 'activity-log', label: 'Activity Log', icon: 'clock' }
+      { id: 'templates', label: 'Template & Configuration', icon: 'file-text' }
     ]
   }
 ];
@@ -32,9 +31,21 @@ interface LeftNavigationProps {
   activeItem?: ScreenId;
   onItemClick?: (id: ScreenId) => void;
   onToggle?: () => void;
+  onLogout?: () => void;
+  userRole?: string | null;
 }
 
-export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle }: LeftNavigationProps) {
+export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle, onLogout, userRole = 'PMO' }: LeftNavigationProps) {
+  const visibleSections = navigationSections.map(section => {
+    if (userRole === 'Reviewer') {
+      return {
+        ...section,
+        items: section.items.filter(item => item.id === 'dashboard' || item.id === 'review')
+      };
+    }
+    return section;
+  });
+
   return (
     <aside className="app-sidebar" data-collapsed={collapsed}>
       <div className="app-sidebar__brand">
@@ -55,7 +66,7 @@ export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle }:
       </div>
       
       <div className="app-sidebar__content">
-        {navigationSections.map(section => (
+        {visibleSections.map(section => (
           <div key={section.id} className="app-sidebar__section">
             <nav className="app-sidebar__nav">
               {section.items.map(item => (
@@ -77,12 +88,25 @@ export function LeftNavigation({ collapsed, activeItem, onItemClick, onToggle }:
       </div>
 
       <div className="app-sidebar__footer">
-        <div className="app-sidebar__user" title={collapsed ? "John Doe" : undefined}>
-          <div className="app-sidebar__avatar">JD</div>
+        {onLogout && (
+          <div style={{ padding: '0 8px 8px 8px', borderBottom: '1px solid var(--app-color-border)', marginBottom: '8px' }}>
+            <button 
+              className="app-sidebar__item" 
+              onClick={onLogout}
+              aria-label="Logout"
+              title={collapsed ? "Logout" : undefined}
+            >
+              <div className="app-sidebar__icon"><Icon name="log-out" size={20} /></div>
+              {!collapsed && <span>Logout</span>}
+            </button>
+          </div>
+        )}
+        <div className="app-sidebar__user" title={collapsed ? (userRole === 'Reviewer' ? 'David Brown' : 'John Doe') : undefined}>
+          <div className="app-sidebar__avatar">{userRole === 'Reviewer' ? 'DB' : 'JD'}</div>
           {!collapsed && (
             <div className="app-sidebar__user-copy">
-              <span className="app-sidebar__user-name">John Doe</span>
-              <span className="app-sidebar__user-email">PMO User</span>
+              <span className="app-sidebar__user-name">{userRole === 'Reviewer' ? 'David Brown' : 'John Doe'}</span>
+              <span className="app-sidebar__user-email">{userRole === 'Reviewer' ? 'Technical Reviewer' : 'PMO User'}</span>
             </div>
           )}
         </div>

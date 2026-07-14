@@ -265,7 +265,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', backgroundColor: 'transparent', position: 'relative', containerType: 'inline-size' }}>
       
       {/* Toolbar */}
-      <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto', opacity: readOnly ? 0.5 : 1, pointerEvents: readOnly ? 'none' : 'auto' }}>
+      {!readOnly && (
+        <div className={`editor-toolbar ${isGenerating ? 'disabled' : ''}`} style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap', overflowX: 'auto' }}>
         
         <ToolbarButton icon="undo" command="undo" title="Undo" />
         <ToolbarButton icon="redo" command="redo" title="Redo" />
@@ -344,8 +345,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
         <div className="toolbar-separator" />
         
         <ToolbarButton icon="remove-formatting" command="clearFormat" title="Clear Formatting" />
-
       </div>
+      )}
 
       {/* Editor Content Area */}
       <div id="sow-editor-scroll-area" style={{ 

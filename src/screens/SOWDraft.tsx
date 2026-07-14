@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
 import { RichEditor } from '../components/ui/RichEditor';
@@ -12,16 +13,16 @@ import { MultiSelect } from '../components/ui/MultiSelect';
 import { type Section } from '../screens/ValidateSOW';
 
 const initialTocItems = [
-  { title: 'Executive Summary', score: 95 },
-  { title: 'Objectives', score: 82 },
-  { title: 'Project Scope', score: 88 },
-  { title: 'Solution Architecture', score: 54 },
-  { title: 'Technical Requirements', score: 90 },
-  { title: 'Deliverables', score: 94 },
-  { title: 'Timeline', score: 87 },
-  { title: 'Commercial Proposal', score: 76 },
-  { title: 'Risks & Assumptions', score: 86 },
-  { title: 'Acceptance Criteria', score: 91 }
+  { title: 'Executive Summary', score: 95, status: 'Approved' },
+  { title: 'Objectives', score: 82, status: 'With Reviewer', assignedReviewer: 'David Brown' },
+  { title: 'Project Scope', score: 88, status: 'Awaiting PMO', assignedReviewer: 'Sujith Thomas', reviewerComment: 'Updated based on the requested security requirements.' },
+  { title: 'Solution Architecture', score: 54, status: 'Rework', assignedReviewer: 'Anna Marie Pinto', reviewerComment: 'This needs to align with the new microservices architecture document.' },
+  { title: 'Technical Requirements', score: 90, status: 'Approved' },
+  { title: 'Deliverables', score: 94, status: 'Approved' },
+  { title: 'Timeline', score: 87, status: 'With Reviewer', assignedReviewer: 'David Brown' },
+  { title: 'Commercial Proposal', score: 76, status: 'With Reviewer', assignedReviewer: 'Gopika Nair' },
+  { title: 'Risks & Assumptions', score: 86, status: 'Awaiting PMO', assignedReviewer: 'Narendra Patel', reviewerComment: 'Added risk 4.3 regarding compliance.' },
+  { title: 'Acceptance Criteria', score: 91, status: 'Approved' }
 ];
 
 const processingStages = [
@@ -67,6 +68,26 @@ export interface ActivityItem {
 }
 
 const mockActivities: ActivityItem[] = [
+  {
+    id: 'act-16',
+    category: 'approval',
+    title: 'Section Approved',
+    description: 'Approved the Objectives section',
+    sectionName: 'Objectives',
+    user: 'David Brown',
+    timestamp: new Date(Date.now() - 1000 * 60 * 1),
+    metadata: { approvalComment: 'Looks good. Business goals align with the RFP.' }
+  },
+  {
+    id: 'act-15',
+    category: 'edit',
+    title: 'Section Regenerated',
+    description: 'Requested regeneration for the Timeline section',
+    sectionName: 'Timeline',
+    user: 'David Brown',
+    timestamp: new Date(Date.now() - 1000 * 60 * 5),
+    metadata: { aiInstruction: 'Please refine the timeline to highlight phase 1 deliverables more clearly.' }
+  },
   {
     id: 'act-14',
     category: 'export',
@@ -185,53 +206,71 @@ const mockActivities: ActivityItem[] = [
 
 interface SOWDraftProps {
   isReviewMode?: boolean;
+  isApprovedMode?: boolean;
   selectedSections?: string[];
   sections?: Section[];
   setSections?: React.Dispatch<React.SetStateAction<Section[]>>;
   globalReviewers?: string[];
   setGlobalReviewers?: React.Dispatch<React.SetStateAction<string[]>>;
+  isDraftMode?: boolean;
+  onSendForReview?: () => void;
+  userRole?: string | null;
 }
 
 export function SOWDraft({ 
   isReviewMode = false, 
+  isApprovedMode = false,
+  isDraftMode = false,
   selectedSections, 
   sections = [], 
   setSections, 
   globalReviewers = [], 
-  setGlobalReviewers 
+  setGlobalReviewers,
+  onSendForReview,
+  userRole = 'PMO'
 }: SOWDraftProps) {
   const [activeTab, setActiveTab] = useState<'rfp' | 'configure' | 'sow' | 'activity'>('sow');
   
   // Add Reviewer Modal State
   const [addReviewerSectionId, setAddReviewerSectionId] = useState<string | null>(null);
-  const [newReviewerName, setNewReviewerName] = useState('');
+  const [reviewerSearch, setReviewerSearch] = useState('');
+  const [selectedReviewers, setSelectedReviewers] = useState<TeamMember[]>([]);
+  const [showReviewerSuggestions, setShowReviewerSuggestions] = useState(false);
   const [newReviewerMessage, setNewReviewerMessage] = useState('');
   const [newReviewerSections, setNewReviewerSections] = useState<string[]>([]);
   
+  const filteredReviewerSuggestions = mockTeamMembers.filter(u => 
+    !selectedReviewers.some(r => r.name === u.name) && 
+    (u.name.toLowerCase().includes(reviewerSearch.toLowerCase()) || u.role.toLowerCase().includes(reviewerSearch.toLowerCase()))
+  );
+
   const handleAddReviewer = () => {
-    const trimmedName = newReviewerName.trim();
-    if (trimmedName && newReviewerSections.length > 0 && setSections && setGlobalReviewers) {
-      if (!globalReviewers.includes(trimmedName)) {
-        setGlobalReviewers(prev => [...prev, trimmedName]);
-      }
-      setSections(prev => prev.map(s => {
-        if (newReviewerSections.includes(s.name) && !s.reviewers.includes(trimmedName)) {
-          return { 
-            ...s, 
-            reviewers: [...s.reviewers, trimmedName],
-            reviewerStatuses: { ...(s.reviewerStatuses || {}), [trimmedName]: 'Review Pending' }
-          };
+    if (selectedReviewers.length > 0 && newReviewerSections.length > 0 && setSections && setGlobalReviewers) {
+      selectedReviewers.forEach(reviewer => {
+        const trimmedName = reviewer.name;
+        if (!globalReviewers.includes(trimmedName)) {
+          setGlobalReviewers(prev => [...prev, trimmedName]);
         }
-        return s;
-      }));
+        setSections(prev => prev.map(s => {
+          if (newReviewerSections.includes(s.name) && !s.reviewers.includes(trimmedName)) {
+            return { 
+              ...s, 
+              reviewers: [...s.reviewers, trimmedName],
+              reviewerStatuses: { ...(s.reviewerStatuses || {}), [trimmedName]: 'Pending' }
+            };
+          }
+          return s;
+        }));
+      });
       setAddReviewerSectionId(null);
-      setNewReviewerName('');
+      setSelectedReviewers([]);
+      setReviewerSearch('');
       setNewReviewerMessage('');
       setNewReviewerSections([]);
     }
   };
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string}[]>(
+  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string, assignedReviewer?: string, reviewerComment?: string}[]>(
     selectedSections && selectedSections.length > 0
       ? selectedSections.map(title => ({ title, score: Math.random() > 0.2 ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 30) + 50 }))
       : initialTocItems
@@ -244,8 +283,8 @@ export function SOWDraft({
   };
 
   // Processing States
-  const [isProcessing, setIsProcessing] = useState(!isReviewMode);
-  const [processingProgress, setProcessingProgress] = useState(isReviewMode ? 100 : 0);
+  const [isProcessing, setIsProcessing] = useState(!(isReviewMode || isApprovedMode || isDraftMode));
+  const [processingProgress, setProcessingProgress] = useState((isReviewMode || isApprovedMode || isDraftMode) ? 100 : 0);
   const [currentProcessingStep, setCurrentProcessingStep] = useState(0);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
@@ -300,6 +339,11 @@ export function SOWDraft({
   // Regenerate Section States
   const [regeneratePopupSection, setRegeneratePopupSection] = useState<number | null>(null);
   const [regenerationInstructions, setRegenerationInstructions] = useState('');
+
+  // Global scroll lock for popups
+  useEffect(() => {
+    // Need to pull all these state variables into the check
+  }, []); // We will redefine this below all the state declarations
   
   // Approval States
   const [reviewerPopupSection, setReviewerPopupSection] = useState<number | null>(null);
@@ -312,6 +356,69 @@ export function SOWDraft({
 
   // Preview State
   const [previewFile, setPreviewFile] = useState<{name: string, size?: string} | null>(null);
+
+  // Hover states for Review Header
+  const [showIdHover, setShowIdHover] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Global scroll lock for all popups
+  useEffect(() => {
+    if (
+      addReviewerSectionId !== null || 
+      isShareModalOpen || 
+      regeneratePopupSection !== null ||
+      reviewerPopupSection !== null ||
+      showPreview
+    ) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [
+    addReviewerSectionId, 
+    isShareModalOpen, 
+    regeneratePopupSection, 
+    reviewerPopupSection, 
+    showPreview
+  ]);
+  const [showBadgeHover, setShowBadgeHover] = useState(false);
+  const idRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const [idTooltipPos, setIdTooltipPos] = useState({ top: 0, left: 0 });
+  const [badgeTooltipPos, setBadgeTooltipPos] = useState({ top: 0, left: 0 });
+
+  const handleIdMouseEnter = () => {
+    if (idRef.current) {
+      const rect = idRef.current.getBoundingClientRect();
+      setIdTooltipPos({
+        top: rect.bottom + 8,
+        left: rect.left + rect.width / 2
+      });
+      setShowIdHover(true);
+    }
+  };
+
+  const handleBadgeMouseEnter = () => {
+    if (badgeRef.current) {
+      const rect = badgeRef.current.getBoundingClientRect();
+      setBadgeTooltipPos({
+        top: rect.bottom + 8,
+        left: rect.right
+      });
+      setShowBadgeHover(true);
+    }
+  };
+
+  const handleScroll = () => {
+    setShowIdHover(false);
+    setShowBadgeHover(false);
+  };
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, true);
+    return () => window.removeEventListener('scroll', handleScroll, true);
+  }, []);
 
   const handleExportWord = async () => {
     setExportToastMessage('Word export started...');
@@ -464,7 +571,8 @@ export function SOWDraft({
         if (previewFile !== null) setPreviewFile(null);
         if (addReviewerSectionId !== null) {
           setAddReviewerSectionId(null);
-          setNewReviewerName('');
+          setSelectedReviewers([]);
+          setReviewerSearch('');
           setNewReviewerMessage('');
           setNewReviewerSections([]);
         }
@@ -482,29 +590,27 @@ export function SOWDraft({
 
   const getSectionStatus = (section: any) => {
     if (!section.reviewers || section.reviewers.length === 0) {
-      return 'Review Pending';
+      return 'Pending';
     }
     const statuses = section.reviewerStatuses || {};
-    let highestPriorityStatus = 'Review Pending';
+    let highestPriorityStatus = 'Pending';
     let highestPriority = 0;
     
     // Priority order:
-    // 4. Changes Requested
-    // 3. In Review
-    // 2. Approved
-    // 1. Review Pending
+    // 3. Rejected
+    // 2. Pending
+    // 1. Approved
 
     section.reviewers.forEach((r: string) => {
-      const s = statuses[r] || 'Review Pending';
+      const s = statuses[r] || 'Pending';
       let priority = 1;
-      if (s === 'Changes Requested') priority = 4;
-      else if (s === 'In Review') priority = 3;
-      else if (s === 'Approved') priority = 2;
-      else if (s === 'Review Pending') priority = 1;
+      if (s === 'Rejected') priority = 3;
+      else if (s === 'Pending') priority = 2;
+      else if (s === 'Approved' || s === 'Approve') priority = 1;
       
       if (priority > highestPriority) {
         highestPriority = priority;
-        highestPriorityStatus = s;
+        highestPriorityStatus = s === 'Approve' ? 'Approved' : s;
       }
     });
     return highestPriorityStatus;
@@ -515,9 +621,8 @@ export function SOWDraft({
 
     let tone = 'warning';
     switch (highestPriorityStatus) {
-      case 'Changes Requested': tone = 'danger'; break;
-      case 'In Review': tone = 'info'; break;
-      case 'Review Pending': tone = 'warning'; break;
+      case 'Rejected': tone = 'danger'; break;
+      case 'Pending': tone = 'warning'; break;
       case 'Approved': tone = 'success'; break;
     }
 
@@ -528,13 +633,79 @@ export function SOWDraft({
     );
   };
 
+  const handleSendForReview = () => {
+    // Validate that all included sections have at least one reviewer
+    const missingReviewers = sections.filter(s => s.included && s.reviewers.length === 0);
+    if (missingReviewers.length > 0) {
+      setToastMessage('Validation failed: All enabled sections must have at least one reviewer assigned.');
+      setTimeout(() => setToastMessage(''), 3000);
+      return;
+    }
+    
+    // Pass validation
+    if (onSendForReview) {
+      onSendForReview();
+      setToastMessage('SOW has been sent for review successfully.');
+      setTimeout(() => setToastMessage(''), 3000);
+    }
+  };
+
+  const exportBlock = (
+    <div style={{ position: 'relative', display: 'flex', gap: '12px' }}>
+
+      <Button variant="accent" onClick={() => setShowExportMenu(!showExportMenu)} disabled={isProcessing}>
+        <Icon name="download" size={16} /> Export
+      </Button>
+      
+      {showExportMenu && (
+        <>
+          <div 
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
+            onClick={() => setShowExportMenu(false)}
+          />
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: '8px',
+            backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
+            borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.08)', zIndex: 100,
+            minWidth: '160px', overflow: 'hidden'
+          }}>
+            <button 
+              onClick={() => { setShowExportMenu(false); handleExportWord(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
+                backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid var(--app-color-border)',
+                cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Icon name="file-text" size={16} /> Export as Word
+            </button>
+            <button 
+              onClick={() => { setShowExportMenu(false); handleExportPPT(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
+                backgroundColor: 'transparent', border: 'none',
+                cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <Icon name="grid" size={16} /> Export as PPT
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <>
-    <div style={{ 
-      display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'hidden', minHeight: 0,
+    <div className="page-container" style={{ 
+      display: 'flex', flexDirection: 'column', height: '100%', flex: 1, overflow: 'visible', minHeight: 0,
       pointerEvents: isProcessing ? 'none' : 'auto'
     }}>
-      <div style={{ padding: '0 24px', paddingTop: '16px' }}>
+
         <Stepper 
           steps={[
             { id: 'analyze', label: 'Analyze' },
@@ -543,23 +714,26 @@ export function SOWDraft({
           ]} 
           currentStepId="generate" 
         />
-      </div>
       {/* Header */}
       <div className="screen-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--app-color-border)' }}>
         {/* Tabs */}
         <div className="tabs-container" style={{ margin: 0, borderBottom: 'none' }}>
-            <button 
-              className={`tab-item ${activeTab === 'rfp' ? 'active' : ''}`}
-              onClick={() => setActiveTab('rfp')}
-            >
-              RFP
-            </button>
-            <button 
-              className={`tab-item ${activeTab === 'configure' ? 'active' : ''}`}
-              onClick={() => setActiveTab('configure')}
-            >
-              Configure Sections
-            </button>
+            {userRole !== 'Reviewer' && (
+              <button 
+                className={`tab-item ${activeTab === 'rfp' ? 'active' : ''}`}
+                onClick={() => setActiveTab('rfp')}
+              >
+                RFP
+              </button>
+            )}
+            {userRole !== 'Reviewer' && (
+              <button 
+                className={`tab-item ${activeTab === 'configure' ? 'active' : ''}`}
+                onClick={() => setActiveTab('configure')}
+              >
+                Configure Sections
+              </button>
+            )}
             <button 
               className={`tab-item ${activeTab === 'sow' ? 'active' : ''}`}
               onClick={() => setActiveTab('sow')}
@@ -575,58 +749,8 @@ export function SOWDraft({
           </div>
 
           <div style={{ display: 'flex', gap: '12px', paddingBottom: '12px' }}>
-            <div style={{ position: 'relative' }}>
-              <Button variant="accent" onClick={() => setShowExportMenu(!showExportMenu)} disabled={isProcessing}>
-                <Icon name="download" size={16} /> Export
-              </Button>
-              
-              {showExportMenu && (
-                <>
-                  <div 
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
-                    onClick={() => setShowExportMenu(false)}
-                  />
-                  <div style={{
-                    position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-                    backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-                    borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.08)', zIndex: 100,
-                    minWidth: '160px', overflow: 'hidden'
-                  }}>
-                    <button 
-                      onClick={() => {
-                        setShowExportMenu(false);
-                        handleExportWord();
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
-                        backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid var(--app-color-border)',
-                        cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <Icon name="file-text" size={16} /> Export as Word
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setShowExportMenu(false);
-                        handleExportPPT();
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
-                        backgroundColor: 'transparent', border: 'none',
-                        cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <Icon name="grid" size={16} /> Export as PPT
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-        </div>
+            {userRole !== 'Reviewer' && exportBlock}
+          </div>
       </div>
 
       <div 
@@ -649,12 +773,16 @@ export function SOWDraft({
                   ))
                 ) : (
                   tocItems.map((item, idx) => {
+                    const isAssigned = item.assignedReviewer === 'David Brown';
+                    const isLocked = userRole === 'Reviewer' && !isAssigned;
+
                     return (
                       <li key={idx} 
-                        className={`toc-tab-item ${activeSectionIndex === idx ? 'active' : ''}`}
+                        className={`toc-tab-item ${activeSectionIndex === idx ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
                         onMouseEnter={() => setHoveredTocIndex(idx)}
                         onMouseLeave={() => setHoveredTocIndex(null)}
                         onClick={() => {
+                          if (isLocked) return;
                           setActiveSectionIndex(idx);
                           setTimeout(() => {
                             const sectionElement = document.getElementById(`sow-section-${idx}`);
@@ -668,18 +796,37 @@ export function SOWDraft({
                             }
                           }, 50);
                         }}
+                        style={{
+                          opacity: isLocked ? 0.5 : 1,
+                          cursor: isLocked ? 'not-allowed' : 'pointer'
+                        }}
+                        title={isLocked ? "You don't have access to this section." : undefined}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', minHeight: '24px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--app-color-accent)' }} />
-                            <span style={{ fontSize: '13px' }}>{item.title}</span>
+                            <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isLocked ? 'var(--app-color-text-muted)' : 'var(--app-color-accent)' }} />
+                            <span style={{ fontSize: '13px', color: isLocked ? 'var(--app-color-text-muted)' : undefined }}>{item.title}</span>
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: '48px', height: '24px', justifyContent: 'flex-end' }}>
-                            {item.status === 'Approved' ? (
-                              <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'flex-end' }}>
+                            {isLocked ? (
+                              <Icon name="lock" size={14} style={{ color: 'var(--app-color-text-muted)' }} />
+                            ) : isApprovedMode ? (
+                              <span title="Approved" style={{ display: 'flex' }}><Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} /></span>
+                            ) : isReviewMode ? (
+                              item.status === 'Approved' ? (
+                                <span title="Approved" style={{ display: 'flex' }}><Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} /></span>
+                              ) : item.status === 'Rework' ? (
+                                <span title="Rework" style={{ display: 'flex' }}><Icon name="refresh-cw" size={16} style={{ color: 'var(--app-color-danger)' }} /></span>
+                              ) : item.status === 'With Reviewer' ? (
+                                <span title={`With Reviewer: ${item.assignedReviewer || 'Unknown'}`} style={{ display: 'flex' }}><Icon name="user" size={16} style={{ color: 'var(--app-color-info)' }} /></span>
+                              ) : item.status === 'Awaiting PMO' ? (
+                                <span title="Awaiting PMO" style={{ display: 'flex' }}><Icon name="clock" size={16} style={{ color: 'var(--app-color-warning)' }} /></span>
+                              ) : null
                             ) : (
-                              <>
+                              item.status === 'Approved' ? (
+                                <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
+                              ) : (
                                 <div title="AI Generation Accuracy" style={{ 
                                   fontSize: '12px', 
                                   fontWeight: 700, 
@@ -687,26 +834,28 @@ export function SOWDraft({
                                 }}>
                                   {item.score}%
                                 </div>
-                                {(hoveredTocIndex === idx || openTocMenuIndex === idx) && (
-                                  <div style={{ position: 'relative' }}>
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setOpenTocMenuIndex(openTocMenuIndex === idx ? null : idx);
-                                      }}
-                                      style={{
-                                        background: 'transparent', border: 'none', padding: '4px',
-                                        cursor: 'pointer', color: 'var(--app-color-text-muted)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        borderRadius: '4px'
-                                      }}
-                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
-                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                    >
-                                      <Icon name="more-horizontal" size={16} />
-                                    </button>
-                                    
-                                    {openTocMenuIndex === idx && (
+                              )
+                            )}
+                            {(!isApprovedMode && item.status !== 'Approved' && (!isReviewMode || (userRole === 'Reviewer' && isAssigned))) && (hoveredTocIndex === idx || openTocMenuIndex === idx) && (
+                              <div style={{ position: 'relative' }}>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenTocMenuIndex(openTocMenuIndex === idx ? null : idx);
+                                  }}
+                                  style={{
+                                    background: 'transparent', border: 'none', padding: '4px',
+                                    cursor: 'pointer', color: 'var(--app-color-text-muted)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    borderRadius: '4px'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  <Icon name="more-horizontal" size={16} />
+                                </button>
+                                
+                                {openTocMenuIndex === idx && (
                                   <>
                                     <div 
                                       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
@@ -721,55 +870,55 @@ export function SOWDraft({
                                       borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 100,
                                       minWidth: '220px', overflow: 'hidden', padding: '6px'
                                     }}>
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); setRegeneratePopupSection(idx); setOpenTocMenuIndex(null); }}
-                                        style={{
-                                          display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
-                                          backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
-                                          cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
-                                          marginBottom: '2px'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      >
-                                        <Icon name="refresh-cw" size={18} /> Regenerate Section
-                                      </button>
-                                      
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); setReviewerPopupSection(idx); setOpenTocMenuIndex(null); }}
-                                        style={{
-                                          display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
-                                          backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
-                                          cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
-                                          marginBottom: '2px'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      >
-                                        <Icon name="user-plus" size={18} /> Add Reviewer
-                                      </button>
-
-                                      
-                                      <button 
-                                        onClick={(e) => { e.stopPropagation(); setApprovePopupSection(idx); setOpenTocMenuIndex(null); }}
-                                        style={{
-                                          display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
-                                          backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
-                                          cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
-                                        }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                      >
-                                        <Icon name="check" size={18} /> Approve
-                                      </button>
+                                      {userRole !== 'Reviewer' ? (
+                                        <button 
+                                          onClick={(e) => { e.stopPropagation(); setAddReviewerSectionId(item.title); setNewReviewerSections([item.title]); setOpenTocMenuIndex(null); }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
+                                            backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
+                                            cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        >
+                                          <Icon name="user-plus" size={18} /> Add Reviewer
+                                        </button>
+                                      ) : (
+                                        <>
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); setRegeneratePopupSection(idx); setOpenTocMenuIndex(null); }}
+                                            style={{
+                                              display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
+                                              backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
+                                              cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
+                                              marginBottom: '2px'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          >
+                                            <Icon name="refresh-cw" size={18} /> Regenerate Section
+                                          </button>
+                                          
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); setApprovePopupSection(idx); setOpenTocMenuIndex(null); }}
+                                            style={{
+                                              display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
+                                              backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
+                                              cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          >
+                                            <Icon name="check" size={18} /> Approve
+                                          </button>
+                                        </>
+                                      )}
                                     </div>
                                   </>
                                 )}
                               </div>
                             )}
-                            </>
-                          )}
-                        </div>
+                          </div>
                         </div>
                       </li>
                     );
@@ -820,13 +969,15 @@ export function SOWDraft({
                     </div>
                   </div>
                 ) : (
-                  <RichEditor 
-                    tocItems={tocItems.map(t => t.title)} 
-                    activeSectionIndex={activeSectionIndex}
-                    isGenerating={false}
-                    readOnly={tocItems[activeSectionIndex]?.status === 'Approved'}
-                    onSectionChange={setActiveSectionIndex}
-                  />
+                  <>
+                    <RichEditor 
+                      tocItems={tocItems.map(item => item.title)} 
+                      activeSectionIndex={activeSectionIndex}
+                      isGenerating={false}
+                      readOnly={isApprovedMode}
+                      onSectionChange={setActiveSectionIndex}
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -1030,10 +1181,9 @@ export function SOWDraft({
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: '#f9fafb' }}>
-                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '10%' }}>Section No.</th>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '10%', whiteSpace: 'nowrap' }}>Section No.</th>
                         <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '30%' }}>Section Name</th>
-                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '42%' }}>Reviewer</th>
-                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '18%' }}>Status</th>
+                        <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '60%' }}>Reviewer</th>
                       </tr>
                     </thead>
                     <tbody style={{ animation: 'simpleFade 0.3s ease-in' }}>
@@ -1060,13 +1210,8 @@ export function SOWDraft({
                                     setSections(prev => prev.map(s => s.id === section.id ? { ...s, reviewers: val } : s));
                                   }
                                 }}
-                                disabled={sectionStatus === 'Approved'}
+                                disabled={isReviewMode || isApprovedMode}
                                 placeholder="Select Reviewers..."
-                                actionLabel="+ Add Reviewer"
-                                onActionClick={() => {
-                                  setAddReviewerSectionId(section.id);
-                                  setNewReviewerSections([section.name]);
-                                }}
                               />
                               {section.reviewers.length === 0 && (
                                 <div style={{ color: 'var(--app-color-danger)', fontSize: '12px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
@@ -1074,9 +1219,6 @@ export function SOWDraft({
                                 </div>
                               )}
                             </div>
-                          </td>
-                          <td style={{ padding: '16px 24px' }}>
-                            {renderStatus(section)}
                           </td>
                         </tr>
                       )})}
@@ -1526,7 +1668,7 @@ export function SOWDraft({
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Add Reviewer</h3>
               </div>
               <button 
-                onClick={() => { setAddReviewerSectionId(null); setNewReviewerName(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}
+                onClick={() => { setAddReviewerSectionId(null); setSelectedReviewers([]); setReviewerSearch(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--app-color-text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
               >
                 <Icon name="x" size={20} />
@@ -1539,22 +1681,81 @@ export function SOWDraft({
                 <label style={{ fontSize: '14px', color: 'var(--app-color-text)', display: 'flex', alignItems: 'center', fontWeight: 500 }}>
                   Reviewer <span style={{ color: 'var(--app-color-danger)', marginLeft: '4px' }}>*</span>
                 </label>
-                <input 
-                  type="text" 
-                  value={newReviewerName}
-                  onChange={(e) => setNewReviewerName(e.target.value)}
-                  placeholder="Search by name or email..."
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--app-color-border)',
-                    fontSize: '14px',
-                    outline: 'none',
-                    width: '100%',
-                    boxSizing: 'border-box'
-                  }}
-                  autoFocus
-                />
+                <div style={{ position: 'relative' }}>
+                  <div style={{
+                    display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center',
+                    padding: '8px 12px', minHeight: '44px',
+                    border: '1px solid var(--app-color-border)', borderRadius: '6px',
+                    backgroundColor: 'var(--app-color-surface)'
+                  }}>
+                    {selectedReviewers.map((recipient, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '4px 8px', backgroundColor: 'var(--app-color-surface-muted)',
+                        borderRadius: '16px', fontSize: '13px', color: 'var(--app-color-text)',
+                        border: '1px solid var(--app-color-border)'
+                      }}>
+                        {recipient.name}
+                        <button 
+                          onClick={() => setSelectedReviewers(prev => prev.filter((_, idx) => idx !== i))}
+                          style={{ background: 'transparent', border: 'none', padding: 0, color: 'var(--app-color-text-muted)', cursor: 'pointer', display: 'flex' }}
+                        >
+                          <Icon name="x" size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <input 
+                      type="text"
+                      value={reviewerSearch}
+                      onChange={(e) => {
+                        setReviewerSearch(e.target.value);
+                        setShowReviewerSuggestions(true);
+                      }}
+                      onFocus={() => setShowReviewerSuggestions(true)}
+                      placeholder={selectedReviewers.length === 0 ? "Search by name or email..." : ""}
+                      style={{ border: 'none', outline: 'none', flex: 1, minWidth: '150px', backgroundColor: 'transparent', fontSize: '14px', color: 'var(--app-color-text)' }}
+                    />
+                  </div>
+                  
+                  {/* Suggestions Dropdown */}
+                  {showReviewerSuggestions && reviewerSearch && filteredReviewerSuggestions.length > 0 && (
+                    <div style={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
+                      backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
+                      borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.08)', zIndex: 10,
+                      maxHeight: '200px', overflowY: 'auto'
+                    }}>
+                      {filteredReviewerSuggestions.map((suggestion, i) => (
+                        <div 
+                          key={i}
+                          onClick={() => {
+                            setSelectedReviewers([...selectedReviewers, suggestion]);
+                            setReviewerSearch('');
+                            setShowReviewerSuggestions(false);
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+                            cursor: 'pointer', borderBottom: i < filteredReviewerSuggestions.length - 1 ? '1px solid var(--app-color-border)' : 'none'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                        >
+                          <div style={{
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600
+                          }}>
+                            {suggestion.initials}
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--app-color-text)' }}>{suggestion.name}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)' }}>{suggestion.role}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1572,11 +1773,11 @@ export function SOWDraft({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 500 }}>Message <span style={{ color: 'var(--app-color-text-muted)', fontWeight: 400 }}>(Optional)</span></label>
+                <label style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 500 }}>Message</label>
                 <textarea 
                   value={newReviewerMessage}
                   onChange={(e) => setNewReviewerMessage(e.target.value)}
-                  placeholder="Add an optional note for the reviewer"
+                  placeholder="Add a note for the reviewer"
                   style={{
                     padding: '12px 14px',
                     borderRadius: '8px',
@@ -1594,8 +1795,8 @@ export function SOWDraft({
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', padding: '20px 24px', borderTop: '1px solid var(--app-color-border)' }}>
-              <Button variant="secondary" onClick={() => { setAddReviewerSectionId(null); setNewReviewerName(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}>Cancel</Button>
-              <Button variant="accent" onClick={handleAddReviewer} disabled={!newReviewerName.trim() || newReviewerSections.length === 0} style={{ opacity: (!newReviewerName.trim() || newReviewerSections.length === 0) ? 0.6 : 1 }}>Add Reviewer</Button>
+              <Button variant="secondary" onClick={() => { setAddReviewerSectionId(null); setSelectedReviewers([]); setReviewerSearch(''); setNewReviewerMessage(''); setNewReviewerSections([]); }}>Cancel</Button>
+              <Button variant="accent" onClick={handleAddReviewer} disabled={selectedReviewers.length === 0 || newReviewerSections.length === 0} style={{ opacity: (selectedReviewers.length === 0 || newReviewerSections.length === 0) ? 0.6 : 1 }}>Add Reviewer</Button>
             </div>
           </div>
         </div>
@@ -1687,7 +1888,7 @@ export function SOWDraft({
                   title: 'Section Approved',
                   description: `Approved the ${tocItems[approvePopupSection]?.title} section`,
                   sectionName: tocItems[approvePopupSection]?.title,
-                  user: 'Dipali Balkrishna Patil',
+                  user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
                   timestamp: new Date(),
                   metadata: approvalComment.trim() ? { approvalComment: approvalComment.trim() } : undefined
                 };
@@ -1801,11 +2002,11 @@ export function SOWDraft({
                   id: `act-${Date.now()}`,
                   category: 'edit',
                   title: 'Section Regenerated',
-                  description: `AI regenerated the ${sectionName} section`,
+                  description: `Requested regeneration for the ${sectionName} section`,
                   sectionName: sectionName,
-                  user: 'Dipali Balkrishna Patil',
+                  user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
                   timestamp: new Date(),
-                  metadata: instructions ? { approvalComment: instructions } : undefined
+                  metadata: instructions ? { aiInstruction: instructions } : undefined
                 };
                 setActivityLog(prev => [newActivity, ...prev]);
                 
@@ -2014,6 +2215,146 @@ export function SOWDraft({
             </div>
           </div>
         </div>
+      )}
+      {/* Hover Popovers */}
+      {(isDraftMode || isReviewMode || isApprovedMode) && document.getElementById('topbar-right-portal-target') && createPortal(
+        <>
+          <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 'normal' }}>Last updated &bull; 10 min ago</span>
+          <div 
+            ref={badgeRef}
+            onMouseEnter={handleBadgeMouseEnter}
+            onMouseLeave={() => setShowBadgeHover(false)}
+            style={{ cursor: 'default', display: 'flex', alignItems: 'center' }}
+          >
+            {isDraftMode ? (
+              <Badge tone="neutral">Draft</Badge>
+            ) : isApprovedMode ? (
+              <Badge tone="success">Approved</Badge>
+            ) : (
+              <Badge tone="warning">In Review</Badge>
+            )}
+          </div>
+        </>,
+        document.getElementById('topbar-right-portal-target')!
+      )}
+      {showIdHover && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: `${idTooltipPos.top}px`,
+          left: `${idTooltipPos.left}px`,
+          transform: 'translateX(-50%)',
+          backgroundColor: 'var(--app-color-surface)',
+          border: '1px solid var(--app-color-border)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          boxShadow: 'var(--app-shadow-float)',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          minWidth: '220px',
+          fontSize: '13px'
+        }}>
+          <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '12px' }}>Cloud Migration Initiative</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', color: 'var(--app-color-text)' }}>
+            <span style={{ color: 'var(--app-color-text-muted)' }}>Client:</span>
+            <span>Acme Corp</span>
+            <span style={{ color: 'var(--app-color-text-muted)' }}>Created By:</span>
+            <span>Ashika Sharma</span>
+            <span style={{ color: 'var(--app-color-text-muted)' }}>Created On:</span>
+            <span>Jul 08, 2026</span>
+            <span style={{ color: 'var(--app-color-text-muted)' }}>Version:</span>
+            <span>1.2</span>
+            <span style={{ color: 'var(--app-color-text-muted)' }}>Last Updated:</span>
+            <span>5 min ago</span>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showBadgeHover && createPortal(
+        <div style={{
+          position: 'fixed',
+          top: `${badgeTooltipPos.top}px`,
+          left: `${badgeTooltipPos.left}px`,
+          transform: 'translateX(-100%)',
+          backgroundColor: 'var(--app-color-surface)',
+          border: '1px solid var(--app-color-border)',
+          borderRadius: '8px',
+          padding: '16px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          zIndex: 9999,
+          width: 'max-content',
+          minWidth: '220px',
+          maxWidth: '260px',
+          color: 'var(--app-color-text)',
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          {isDraftMode ? (
+            <>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', borderBottom: '1px solid var(--app-color-border)', paddingBottom: '8px' }}>
+                Draft
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                <div style={{ color: 'var(--app-color-text-muted)' }}>Not yet sent for review</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Last updated :</span>
+                  <span style={{ fontWeight: 600 }}>10 min ago</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Version :</span>
+                  <span style={{ fontWeight: 600 }}>0.1</span>
+                </div>
+              </div>
+            </>
+          ) : isApprovedMode ? (
+            <>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', borderBottom: '1px solid var(--app-color-border)', paddingBottom: '8px' }}>
+                Approved
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Status :</span>
+                  <span style={{ fontWeight: 600 }}>All sections accepted</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Approved on :</span>
+                  <span style={{ fontWeight: 600 }}>Jul 10, 2026</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Approved by :</span>
+                  <span style={{ fontWeight: 600 }}>Narendra Patel</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>Version :</span>
+                  <span style={{ fontWeight: 600 }}>1.0</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', borderBottom: '1px solid var(--app-color-border)', paddingBottom: '8px' }}>
+                In Review
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>👥 With Reviewers :</span>
+                  <span style={{ fontWeight: 600 }}>3</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>📥 Awaiting PMO :</span>
+                  <span style={{ fontWeight: 600 }}>2</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+                  <span style={{ color: 'var(--app-color-text-muted)' }}>🔁 Rework :</span>
+                  <span style={{ fontWeight: 600 }}>1</span>
+                </div>
+              </div>
+            </>
+          )}
+        </div>,
+        document.body
       )}
 
     </div>

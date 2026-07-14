@@ -5,7 +5,6 @@ import { Button } from '../components/ui/Button';
 import { Stepper } from '../components/ui/Stepper';
 
 import { MultiSelect } from '../components/ui/MultiSelect';
-import { Toast } from '../components/ui/Toast';
 
 export interface Section {
   id: string;
@@ -18,18 +17,18 @@ export interface Section {
 }
 
 export const mockSections: Section[] = [
-  { id: '1', no: '1.0', name: 'Project Introduction', description: 'Overview of the project, objectives and background information.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'Approved' } },
-  { id: '2', no: '2.0', name: 'Project Scope', description: 'Defines the in-scope and out-of-scope items for the project.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Review Pending' } },
-  { id: '3', no: '3.0', name: 'Business Requirements', description: 'Detailed business requirements and expectations.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'In Review' } },
-  { id: '4', no: '4.0', name: 'Solution Approach', description: 'Proposed solution, methodology and approach.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'Changes Requested' } },
-  { id: '5', no: '5.0', name: 'Deliverables', description: 'List of deliverables and acceptance criteria.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Approved' } },
-  { id: '6', no: '6.0', name: 'Roles & Responsibilities', description: 'Roles and responsibilities of both parties.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'Review Pending' } },
+  { id: '1', no: '1.0', name: 'Project Introduction', description: 'Overview of the project, objectives and background information.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'Approve' } },
+  { id: '2', no: '2.0', name: 'Project Scope', description: 'Defines the in-scope and out-of-scope items for the project.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Pending' } },
+  { id: '3', no: '3.0', name: 'Business Requirements', description: 'Detailed business requirements and expectations.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'Pending' } },
+  { id: '4', no: '4.0', name: 'Solution Approach', description: 'Proposed solution, methodology and approach.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'Rejected' } },
+  { id: '5', no: '5.0', name: 'Deliverables', description: 'List of deliverables and acceptance criteria.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Approve' } },
+  { id: '6', no: '6.0', name: 'Roles & Responsibilities', description: 'Roles and responsibilities of both parties.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'Pending' } },
   { id: '7', no: '7.0', name: 'Project Timeline', description: 'High-level project timeline and milestones.', included: false, reviewers: [], reviewerStatuses: {} },
-  { id: '8', no: '8.0', name: 'Commercial Terms', description: 'Pricing, payment terms and commercial conditions.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'In Review' } },
+  { id: '8', no: '8.0', name: 'Commercial Terms', description: 'Pricing, payment terms and commercial conditions.', included: true, reviewers: ['Anna Marie Pinto'], reviewerStatuses: { 'Anna Marie Pinto': 'Pending' } },
   { id: '9', no: '9.0', name: 'Assumptions', description: 'Key assumptions and constraints for the project.', included: false, reviewers: [], reviewerStatuses: {} },
-  { id: '10', no: '10.0', name: 'Risks & Mitigation', description: 'Potential risks and mitigation strategies.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'Approved' } },
+  { id: '10', no: '10.0', name: 'Risks & Mitigation', description: 'Potential risks and mitigation strategies.', included: true, reviewers: ['Sagar'], reviewerStatuses: { 'Sagar': 'Approve' } },
   { id: '11', no: '11.0', name: 'Service Level Agreement', description: 'Service levels and performance metrics.', included: false, reviewers: [], reviewerStatuses: {} },
-  { id: '12', no: '12.0', name: 'Appendices', description: 'Supporting documents and additional information.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Review Pending' } },
+  { id: '12', no: '12.0', name: 'Appendices', description: 'Supporting documents and additional information.', included: true, reviewers: ['Himanshu Khandelwal'], reviewerStatuses: { 'Himanshu Khandelwal': 'Pending' } },
 ];
 
 interface ValidateSOWProps {
@@ -44,7 +43,6 @@ interface ValidateSOWProps {
 export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalReviewers, onProceed, onCancel }: ValidateSOWProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [validationError, setValidationError] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [failedReviewers, setFailedReviewers] = useState<string[]>([]);
   const [assignResult, setAssignResult] = useState<'partial' | 'error' | null>(null);
@@ -88,49 +86,11 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
   };
 
   const handleProceed = () => {
-    const invalidSections = sections.filter(s => s.included && s.reviewers.length === 0);
-    if (invalidSections.length > 0) {
-      setValidationError('At least one reviewer must be assigned for every enabled section.');
-      setTimeout(() => setValidationError(''), 4000);
-      return;
-    }
-    setValidationError('');
-
-    const enabledSections = sections.filter(s => s.included);
-    const assignments: Record<string, string[]> = {};
-    
-    enabledSections.forEach(section => {
-      section.reviewers.forEach(reviewer => {
-        if (!assignments[reviewer]) {
-          assignments[reviewer] = [];
-        }
-        assignments[reviewer].push(section.name);
-      });
-    });
-
     setIsAssigning(true);
 
     setTimeout(() => {
-      // Simulate sending emails
-      Object.entries(assignments).forEach(([reviewer, sectionNames]) => {
-        console.log(`
-Subject: Review Assignment – Acme Corp Web Redesign
-
-Hello ${reviewer},
-
-You have been assigned as a reviewer for the following section(s) in "Acme Corp Web Redesign":
-${sectionNames.map(name => `- ${name}`).join('\n')}
-
-The document is currently being prepared. You will be able to access it from the Reviews section once it is available.
-
-Assigned by: PMO Admin
-        `);
-      });
-      // We keep isAssigning true to prevent user interaction while the toast is visible.
-      // The navigation will be triggered when the toast closes (either automatically or manually).
-      setShowToast(true);
-
-    }, 2500);
+      onProceed(sections.filter(s => s.included).map(s => s.name));
+    }, 1500);
   };
 
   return (
@@ -184,10 +144,10 @@ Assigned by: PMO Admin
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--app-color-border)', backgroundColor: '#f9fafb' }}>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '120px' }}>Section No.</th>
+              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '120px', whiteSpace: 'nowrap' }}>Section No.</th>
               <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '200px' }}>Section Name</th>
               <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '280px' }}>Description</th>
-              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', textAlign: 'center', width: '130px' }}>Include in SOW</th>
+              <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', textAlign: 'center', width: '150px', whiteSpace: 'nowrap' }}>Include In SOW</th>
               <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: 'var(--app-color-text)', width: '380px' }}>Reviewer</th>
             </tr>
           </thead>
@@ -289,12 +249,12 @@ Assigned by: PMO Admin
             <Icon name="x" size={16} /> Cancel
           </Button>
           <Button variant="accent" onClick={handleProceed} disabled={isLoading || isAssigning}>
-            {isAssigning ? 'Continuing...' : 'Continue'}
+            {isAssigning ? 'Continuing...' : 'Continue'} <Icon name="arrow-right" size={16} />
           </Button>
         </div>
       </div>
 
-      {(isLoading || isAssigning) && !showToast && (
+      {(isLoading || isAssigning) && (
         <div style={{
           position: 'fixed',
           top: 0, left: 0, right: 0, bottom: 0,
@@ -317,104 +277,11 @@ Assigned by: PMO Admin
           }}>
             <Icon name="loader" size={32} className="icon-spin" style={{ color: 'var(--app-color-accent)' }} />
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)' }}>
-              {isAssigning ? 'Assigning Reviewers' : 'Analyzing Document'}
+              {isAssigning ? 'Configuration Saved Successfully' : 'Analyzing Document'}
             </h3>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)' }}>
-              {isAssigning ? 'Assigning reviewers and sending notifications...' : 'Extracting SOW sections from the uploaded RFP...'}
+              {isAssigning ? 'Preparing the SOW Draft based on your selections...' : 'Extracting SOW sections from the uploaded RFP...'}
             </p>
-          </div>
-        </div>
-      )}
-
-      <Toast
-        isOpen={showToast}
-        onClose={() => {
-          setShowToast(false);
-          setIsAssigning(false);
-          onProceed(sections.filter(s => s.included).map(s => s.name));
-        }}
-        title="Reviewers assigned successfully"
-        description="Your section configuration has been saved and the selected reviewers have been notified."
-        type="success"
-        duration={6000}
-      />
-
-      {assignResult === 'partial' && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(13, 33, 44, 0.4)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            backgroundColor: 'var(--app-color-surface)',
-            width: '420px',
-            borderRadius: '16px',
-            padding: '32px',
-            display: 'flex', flexDirection: 'column', gap: '24px',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', textAlign: 'center' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--app-color-warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="alert-circle" size={24} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>Partial Notification Failure</h3>
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)' }}>
-                Reviewers were assigned, but some notifications could not be sent to:
-              </p>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {failedReviewers.map(r => (
-                  <li key={r} style={{ fontSize: '13px', fontWeight: 500, color: 'var(--app-color-danger)' }}>• {r}</li>
-                ))}
-              </ul>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '8px' }}>
-              <Button variant="secondary" onClick={() => setAssignResult(null)}>
-                Retry Notifications
-              </Button>
-              <Button variant="accent" onClick={() => {
-                setAssignResult(null);
-                onProceed(sections.filter(s => s.included).map(s => s.name));
-              }}>
-                Continue Anyway
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {assignResult === 'error' && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(13, 33, 44, 0.4)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            backgroundColor: 'var(--app-color-surface)',
-            width: '400px',
-            borderRadius: '16px',
-            padding: '32px',
-            display: 'flex', flexDirection: 'column', gap: '24px',
-            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
-            alignItems: 'center', textAlign: 'center'
-          }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--app-color-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="alert-circle" size={24} />
-            </div>
-            <div>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>Notification Failed</h3>
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: '1.5' }}>
-                We couldn’t assign and notify the reviewers. Please try again.
-              </p>
-            </div>
-            <Button variant="accent" onClick={() => setAssignResult(null)} style={{ padding: '8px 32px' }}>
-              Retry
-            </Button>
           </div>
         </div>
       )}

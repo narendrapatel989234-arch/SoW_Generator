@@ -7,7 +7,7 @@ export type IconName =
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
   | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip' | 'more-horizontal'
-  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive' | 'clock' | 'info';
+  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive' | 'clock' | 'info' | 'log-out' | 'lock';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -17,6 +17,15 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
   let path = null;
   switch (name) {
+    case 'log-out':
+      path = (
+        <>
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </>
+      );
+      break;
     case 'search':
       path = (
         <>
@@ -152,6 +161,9 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></>; break;
     case 'share':
       path = <><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></>; break;
+    case 'lock':
+      path = <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></>;
+      break;
     case 'more-horizontal':
       path = <><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle><circle cx="5" cy="12" r="1.5"></circle></>; break;
     case 'sparkles':

@@ -654,7 +654,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
           <Icon name="x" size={16} /> Clear
         </Button>
         <Button variant="accent" onClick={handleSubmit} disabled={rfpFiles.length === 0 || tags.length === 0 || isSubmitting}>
-          <Icon name="check-circle" size={16} /> Continue <Icon name="arrow-right" size={16} />
+          Continue <Icon name="arrow-right" size={16} />
         </Button>
       </div>
 
