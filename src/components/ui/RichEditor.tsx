@@ -38,8 +38,9 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     };
   }, [isRegenerateModalOpen]);
 
-  const [contentHtml, setContentHtml] = useState<string>(() => {
-    return tocItems.map((item, idx) => {
+  const generateContentHtml = (items: string[]) => {
+    return items.map((item, idx) => {
+      const fileName = (item === 'Executive Summary' || item === 'Objectives' || item === 'Project Scope') ? 'Acme_Corp_Cloud_Migration_RFP.pdf' : 'Architecture_Guidelines.pdf';
       let html = `<div id="sow-section-${idx}" class="sow-section"><h2 style="color: var(--app-color-primary); margin-bottom: 16px;">${item}</h2>`;
       switch (item) {
         case 'Executive Summary':
@@ -77,8 +78,10 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
             <li>Data cleansing or manual data remediation prior to database migration.</li>
           </ul>`;
           break;
+        case 'Solution Approach':
         case 'Solution Architecture':
-          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The proposed solution architecture is designed around a highly decoupled, event-driven microservices pattern hosted on a managed Kubernetes environment. This design prioritizes fault tolerance, horizontal scalability, and strict security compliance.</p>
+          html += `<img src="/solution_approach.png" alt="Solution Approach Diagram" style="width: 100%; max-width: 800px; border-radius: 8px; margin-bottom: 24px; border: 1px solid var(--app-color-border);" />
+          <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The proposed solution architecture is designed around a highly decoupled, event-driven microservices pattern hosted on a managed Kubernetes environment. This design prioritizes fault tolerance, horizontal scalability, and strict security compliance.</p>
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The architectural framework consists of several critical layers working in tandem:</p>
           <ul style="margin-bottom: 16px; padding-left: 24px; line-height: 1.6; color: var(--app-color-text);">
             <li><strong>Edge & Ingress Layer:</strong> A highly available Cloud Load Balancer integrated with a Web Application Firewall (WAF) to defend against DDoS attacks and OWASP Top 10 vulnerabilities. Traffic is then routed through an API Gateway for request validation and throttling.</li>
@@ -98,13 +101,36 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           break;
         case 'Deliverables':
           html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The engagement will yield a series of concrete, verifiable deliverables across the project lifecycle. Acceptance of these deliverables will trigger subsequent project phases and associated commercial milestones.</p>
-          <ol style="margin-bottom: 16px; padding-left: 24px; line-height: 1.6; color: var(--app-color-text);">
-            <li><strong>Architecture Design Document (ADD) [Week 2]:</strong> A comprehensive blueprint detailing network topology, component interactions, security protocols, and data flow diagrams.</li>
-            <li><strong>Infrastructure as Code (IaC) Scripts [Week 4]:</strong> Fully parameterized Terraform and Ansible scripts for automated provisioning of the foundational cloud environments (Dev, QA, Prod).</li>
-            <li><strong>Containerized Services [Week 8]:</strong> Delivery of the 12 migrated backend services, packaged as Docker containers, deployed and functioning in the QA environment.</li>
-            <li><strong>Performance & Security Testing Report [Week 10]:</strong> Detailed documentation of load testing results, penetration testing findings, and remediation steps taken.</li>
-            <li><strong>Final Handover Package [Week 12]:</strong> Complete runbooks, operational manuals, disaster recovery procedures, and a formal sign-off document.</li>
-          </ol>`;
+          <table border="1" style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid var(--app-color-border); text-align: left; font-size: 14px;">
+            <thead>
+              <tr style="background-color: var(--app-color-surface-muted);">
+                <th style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Deliverable</th>
+                <th style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);"><strong>Architecture Design Document (ADD) [Week 2]</strong></td>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">A comprehensive blueprint detailing network topology, component interactions, security protocols, and data flow diagrams.</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);"><strong>Infrastructure as Code (IaC) Scripts [Week 4]</strong></td>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Fully parameterized Terraform and Ansible scripts for automated provisioning of the foundational cloud environments (Dev, QA, Prod).</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);"><strong>Containerized Services [Week 8]</strong></td>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Delivery of the 12 migrated backend services, packaged as Docker containers, deployed and functioning in the QA environment.</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);"><strong>Performance & Security Testing Report [Week 10]</strong></td>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Detailed documentation of load testing results, penetration testing findings, and remediation steps taken.</td>
+              </tr>
+              <tr>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);"><strong>Final Handover Package [Week 12]</strong></td>
+                <td style="padding: 12px; border-bottom: 1px solid var(--app-color-border);">Complete runbooks, operational manuals, disaster recovery procedures, and a formal sign-off document.</td>
+              </tr>
+            </tbody>
+          </table>`;
           break;
         case 'Timeline':
           html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The project is estimated to be completed over a period of 12 weeks, divided into four distinct sprints. This timeline is contingent upon timely approvals and resource availability from the client.</p>
@@ -149,10 +175,22 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           html += `<p style="margin-bottom: 16px; line-height: 1.6; color: var(--app-color-text);">This is auto-generated detailed content for the <strong>${item}</strong> section based on the extracted requirements from your RFP document. Our AI analysis indicates that this section requires further manual review to align perfectly with your internal compliance standards. Please review and modify as needed to ensure it meets your exact specifications.</p>`;
           break;
       }
-      html += '</div>';
+      
+      html += `<div style="margin-top: 16px; font-size: 12px; color: var(--app-color-text-muted); display: flex; align-items: center; gap: 6px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        Source: ${fileName}
+      </div>`;
+      
+      html += `</div>`;
       return html;
-    }).join('\n');
-  });
+    }).join('\n<hr style="border: 0; border-top: 1px solid var(--app-color-border); margin: 32px 0;" />\n');
+  };
+
+  const [contentHtml, setContentHtml] = useState<string>(() => generateContentHtml(tocItems));
+
+  useEffect(() => {
+    setContentHtml(generateContentHtml(tocItems));
+  }, [tocItems]);
 
   // Set initial content when not generating
   useEffect(() => {

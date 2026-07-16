@@ -273,7 +273,7 @@ export function ValidateSOW({ sections, setSections, globalReviewers, setGlobalR
             gap: '16px',
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
           }}>
-            <Icon name="loader" size={32} className="icon-spin" style={{ color: 'var(--app-color-accent)' }} />
+            <Icon name="loader" size={32} className="icon-spin" style={{ color: 'var(--app-color-primary)' }} />
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--app-color-text)' }}>
               {isAssigning ? 'Configuration Saved Successfully' : 'Analyzing Document'}
             </h3>

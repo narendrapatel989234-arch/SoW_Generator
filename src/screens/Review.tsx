@@ -170,7 +170,7 @@ function StatusBadgeCell({ status, reviewCounts }: { status: string, reviewCount
   let tone = 'neutral';
   switch (status) {
     case 'Draft': tone = 'neutral'; break;
-    case 'In Review': tone = 'info'; break;
+    case 'In Review': tone = 'warning'; break;
     case 'Approved': tone = 'success'; break;
   }
 

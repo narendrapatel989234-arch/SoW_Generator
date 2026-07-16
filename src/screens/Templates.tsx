@@ -501,7 +501,7 @@ export function Templates({ globalReviewers, activeView, onViewChange }: Templat
           gap: '24px' 
         }}
       >
-        {templateList.map((tpl) => (
+        {templateList.filter(tpl => tpl.name === 'Statement of Work (SOW)').map((tpl) => (
           <div 
             key={tpl.id}
             role="button"

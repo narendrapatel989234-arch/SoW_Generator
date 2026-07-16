@@ -304,6 +304,29 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             </div>
           </div>
         }>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
+            {rfpFiles.length > 0 && (
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
+                  Client Name <span style={{ color: 'var(--app-color-danger)' }}>*</span>
+                </label>
+                <input 
+                  type="text" 
+                  defaultValue="Acme Corp" 
+                  style={{ 
+                    width: '100%', 
+                    padding: '10px 14px', 
+                    border: '1px solid var(--app-color-border)', 
+                    borderRadius: 'var(--app-radius-sm)',
+                    backgroundColor: 'var(--app-color-surface)',
+                    color: 'var(--app-color-text)',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }} 
+                />
+              </div>
+            )}
+          </div>
           <FileUpload 
             multiple={false} 
             hint="Drag and drop"
@@ -438,10 +461,10 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
         <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              Match with available SOW templates
+              Match with available SOW References
             </div>
             <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', fontWeight: 400 }}>
-              Find and select the most relevant previous SOW templates based on the tags extracted from your RFP.
+              Find and select the most relevant previous SOW references based on the tags extracted from your RFP.
             </div>
             {refreshMessage && (
               <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
@@ -462,7 +485,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
                   disabled={tags.length === 0} 
                   style={{ backgroundColor: 'white' }}
                 >
-                  <Icon name="file-text" size={16} /> Show Matching SOW Templates
+                  <Icon name="file-text" size={16} /> Show Matching SOW References
                 </Button>
               </div>
             ) : isFindingSOWs ? (
@@ -1068,7 +1091,7 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
             maxWidth: '400px',
             textAlign: 'center'
           }}>
-            <Icon name="loader" size={40} className="icon-spin" style={{ color: 'var(--app-color-accent)' }} />
+            <Icon name="loader" size={40} className="icon-spin" style={{ color: 'var(--app-color-primary)' }} />
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>
                 Preparing Document Sections

@@ -271,6 +271,14 @@ export function SOWDraft({
       setSelectedReviewers([]);
       setReviewerSearch('');
       setNewReviewerMessage('');
+      
+      // Update tocItems to reflect the assignment immediately
+      setTocItems(prev => prev.map(t => {
+        if (newReviewerSections.includes(t.title) && !t.assignedReviewer && selectedReviewers.length > 0) {
+          return { ...t, assignedReviewer: selectedReviewers[0].name };
+        }
+        return t;
+      }));
       setNewReviewerSections([]);
     }
   };
@@ -350,9 +358,9 @@ export function SOWDraft({
     // Need to pull all these state variables into the check
   }, []); // We will redefine this below all the state declarations
   
-  // Approval States
   const [reviewerPopupSection, setReviewerPopupSection] = useState<number | null>(null);
   const [approvePopupSection, setApprovePopupSection] = useState<number | null>(null);
+  const [rejectPopupSection, setRejectPopupSection] = useState<number | null>(null);
   const [approvalComment, setApprovalComment] = useState('');
   
   // TOC Menu States
@@ -387,6 +395,7 @@ export function SOWDraft({
     regeneratePopupSection, 
     reviewerPopupSection, 
     approvePopupSection,
+    rejectPopupSection,
     showPreview
   ]);
   const [showBadgeHover, setShowBadgeHover] = useState(false);
@@ -574,6 +583,7 @@ export function SOWDraft({
         if (isShareModalOpen) setIsShareModalOpen(false);
         if (reviewerPopupSection !== null) setReviewerPopupSection(null);
         if (approvePopupSection !== null) setApprovePopupSection(null);
+        if (rejectPopupSection !== null) setRejectPopupSection(null);
         if (regeneratePopupSection !== null) setRegeneratePopupSection(null);
         if (previewFile !== null) setPreviewFile(null);
         if (addReviewerSectionId !== null) {
@@ -659,50 +669,9 @@ export function SOWDraft({
 
   const exportBlock = (
     <div style={{ position: 'relative', display: 'flex', gap: '12px' }}>
-
-      <Button variant="accent" onClick={() => setShowExportMenu(!showExportMenu)} disabled={isProcessing}>
-        <Icon name="download" size={16} /> Export
+      <Button variant="accent" onClick={handleExportWord} disabled={isProcessing}>
+        <Icon name="file-text" size={16} /> Export as Word
       </Button>
-      
-      {showExportMenu && (
-        <>
-          <div 
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 90 }} 
-            onClick={() => setShowExportMenu(false)}
-          />
-          <div style={{
-            position: 'absolute', top: '100%', right: 0, marginTop: '8px',
-            backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-            borderRadius: '6px', boxShadow: '0 8px 16px rgba(0,0,0,0.08)', zIndex: 100,
-            minWidth: '160px', overflow: 'hidden'
-          }}>
-            <button 
-              onClick={() => { setShowExportMenu(false); handleExportWord(); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
-                backgroundColor: 'transparent', border: 'none', borderBottom: '1px solid var(--app-color-border)',
-                cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <Icon name="file-text" size={16} /> Export as Word
-            </button>
-            <button 
-              onClick={() => { setShowExportMenu(false); handleExportPPT(); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '12px 16px',
-                backgroundColor: 'transparent', border: 'none',
-                cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <Icon name="grid" size={16} /> Export as PPT
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 
@@ -842,6 +811,8 @@ export function SOWDraft({
                               <span title="Approved" style={{ display: 'flex' }}><Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} /></span>
                             ) : isLocked ? null : item.status === 'Approved' ? (
                               <span title="Approved" style={{ display: 'flex' }}><Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} /></span>
+                            ) : (item.status === 'Rejected' || item.status === 'Rework Required') ? (
+                              <span title="Rejected" style={{ display: 'flex' }}><Icon name="x-circle" size={18} style={{ color: 'var(--app-color-danger)' }} /></span>
                             ) : (
                               <>
                                 <div 
@@ -885,7 +856,7 @@ export function SOWDraft({
                                     </div>
                                   )}
                                 </div>
-                                {isReviewMode && item.assignedReviewer && (
+                                {item.assignedReviewer && (
                                   <div 
                                     onMouseEnter={() => setHoveredReviewerIndex(idx)}
                                     onMouseLeave={() => setHoveredReviewerIndex(null)}
@@ -916,6 +887,26 @@ export function SOWDraft({
                                         <div>{item.assignedReviewer}</div>
                                       </div>
                                     )}
+                                  </div>
+                                )}
+                                {!item.assignedReviewer && userRole !== 'Reviewer' && !isApprovedMode && item.status !== 'Approved' && item.status !== 'Rejected' && item.status !== 'Rework Required' && (
+                                  <div 
+                                    onClick={(e) => { e.stopPropagation(); setAddReviewerSectionId(item.title); setNewReviewerSections([item.title]); }}
+                                    style={{ position: 'relative', display: 'flex' }}
+                                    title="Assign Reviewer"
+                                  >
+                                    <div style={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      cursor: 'pointer', color: 'var(--app-color-primary)',
+                                      padding: '4px', borderRadius: '4px',
+                                      transition: 'background-color 0.2s',
+                                      backgroundColor: 'transparent'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-primary-soft)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Icon name="user-plus" size={16} />
+                                    </div>
                                   </div>
                                 )}
                               </>
@@ -956,15 +947,21 @@ export function SOWDraft({
                                     }}>
                                       {userRole !== 'Reviewer' && !isReviewMode && !isApprovedMode && (
                                         <button 
-                                          onClick={(e) => { e.stopPropagation(); setAddReviewerSectionId(item.title); setNewReviewerSections([item.title]); setOpenTocMenuIndex(null); }}
+                                          onClick={(e) => { 
+                                            if (item.status === 'Rejected' || item.status === 'Rework Required') return;
+                                            e.stopPropagation(); setAddReviewerSectionId(item.title); setNewReviewerSections([item.title]); setOpenTocMenuIndex(null); 
+                                          }}
                                           style={{
                                             display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                             backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
-                                            cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
-                                            marginBottom: '2px'
+                                            cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
+                                            color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
+                                            marginBottom: '2px',
+                                            opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
                                           }}
-                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                          onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
                                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          disabled={item.status === 'Rejected' || item.status === 'Rework Required'}
                                         >
                                           <Icon name="user-plus" size={18} /> Add Reviewer
                                         </button>
@@ -985,17 +982,44 @@ export function SOWDraft({
                                       </button>
                                       
                                       <button 
-                                        onClick={(e) => { e.stopPropagation(); setApprovePopupSection(idx); setOpenTocMenuIndex(null); }}
+                                        onClick={(e) => { 
+                                          if (item.status === 'Rejected' || item.status === 'Rework Required') return;
+                                          e.stopPropagation(); setApprovePopupSection(idx); setOpenTocMenuIndex(null); 
+                                        }}
                                         style={{
                                           display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                           backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
-                                          cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left'
+                                          cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
+                                          color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
+                                          opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                        onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                        disabled={item.status === 'Rejected' || item.status === 'Rework Required'}
                                       >
                                         <Icon name="check" size={18} /> Approve
                                       </button>
+                                      
+                                      {userRole !== 'Reviewer' && (
+                                        <button 
+                                          onClick={(e) => { 
+                                            if (item.status === 'Rejected' || item.status === 'Rework Required') return;
+                                            e.stopPropagation(); setRejectPopupSection(idx); setOpenTocMenuIndex(null); 
+                                          }}
+                                          style={{
+                                            display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
+                                            backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
+                                            cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
+                                            color: 'var(--app-color-danger)', fontSize: '14px', textAlign: 'left',
+                                            opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
+                                          }}
+                                          onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                          disabled={item.status === 'Rejected' || item.status === 'Rework Required'}
+                                        >
+                                          <Icon name="x-circle" size={18} /> Reject
+                                        </button>
+                                      )}
                                     </div>
                                   </>
                                 )}
@@ -1566,7 +1590,11 @@ export function SOWDraft({
           fontSize: '14px',
           fontWeight: 500
         }}>
-          <Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} />
+          <Icon 
+            name={toastMessage.toLowerCase().includes('reject') ? 'x-circle' : 'check-circle'} 
+            size={18} 
+            style={{ color: toastMessage.toLowerCase().includes('reject') ? 'var(--app-color-danger)' : 'var(--app-color-success)' }} 
+          />
           {toastMessage}
         </div>
       )}
@@ -1971,7 +1999,7 @@ export function SOWDraft({
               }} style={{ border: '1px solid var(--app-color-border)', padding: '8px 24px' }}>
                 Cancel
               </Button>
-              <Button variant="accent" disabled={!approvalComment.trim()} onClick={() => {
+              <Button variant="accent" onClick={() => {
                 if (approvePopupSection === null) return;
                 const newItems = [...tocItems];
                 newItems[approvePopupSection].status = 'Approved';
@@ -1991,10 +2019,114 @@ export function SOWDraft({
                 
                 setApprovePopupSection(null);
                 setApprovalComment('');
-                setToastMessage('Section approved successfully.');
+                setToastMessage('Section approved.');
                 setTimeout(() => setToastMessage(''), 3000);
-              }} style={{ padding: '8px 24px', opacity: !approvalComment.trim() ? 0.6 : 1 }}>
+              }} style={{ padding: '8px 24px' }}>
                 Approve
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Section Confirmation Modal */}
+      {rejectPopupSection !== null && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.4)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setRejectPopupSection(null)}>
+          <div style={{
+            width: 'min(440px, calc(100vw - 32px))',
+            backgroundColor: 'var(--app-color-surface)',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
+              <Icon name="x-circle" size={20} style={{ color: 'var(--app-color-danger)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-danger)', margin: 0 }}>Reject Section</h2>
+              <button 
+                onClick={() => setRejectPopupSection(null)}
+                style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
+              >
+                <Icon name="x" size={20} style={{ color: 'var(--app-color-text-muted)' }} />
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                Are you sure you want to reject this section? A comment is required.
+              </p>
+              {/* Information Card */}
+              <div style={{ 
+                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '8px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[rejectPopupSection as number]?.title}</span>
+                </div>
+              </div>
+
+              {/* Reject Comments */}
+              <div style={{ width: '100%', textAlign: 'left' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
+                  Reason for Rejection <span style={{ color: 'var(--app-color-danger)' }}>*</span>
+                </label>
+                <textarea 
+                  value={approvalComment}
+                  onChange={(e) => setApprovalComment(e.target.value)}
+                  placeholder="Explain why this section is being rejected..."
+                  style={{
+                    width: '100%', height: '72px', padding: '12px',
+                    border: '1px solid var(--app-color-border)', borderRadius: '6px',
+                    backgroundColor: 'var(--app-color-surface)', fontSize: '13px',
+                    color: 'var(--app-color-text)', resize: 'none', outline: 'none',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'flex-end', gap: '12px', width: '100%' }}>
+              <Button variant="ghost" onClick={() => {
+                setRejectPopupSection(null);
+                setApprovalComment('');
+              }} style={{ border: '1px solid var(--app-color-border)', padding: '8px 24px' }}>
+                Cancel
+              </Button>
+              <Button variant="accent" disabled={!approvalComment.trim()} onClick={() => {
+                if (rejectPopupSection === null) return;
+                const newItems = [...tocItems];
+                newItems[rejectPopupSection].status = 'Rejected';
+                setTocItems(newItems);
+                
+                const newActivity: ActivityItem = {
+                  id: `act-${Date.now()}`,
+                  category: 'review',
+                  title: 'Section Rejected',
+                  description: `Rejected the ${tocItems[rejectPopupSection]?.title} section`,
+                  sectionName: tocItems[rejectPopupSection]?.title,
+                  user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
+                  timestamp: new Date(),
+                  metadata: { approvalComment: approvalComment.trim() }
+                };
+                setActivityLog(prev => [newActivity, ...prev]);
+                
+                setRejectPopupSection(null);
+                setApprovalComment('');
+                setToastMessage('Rework requested for section.');
+                setTimeout(() => setToastMessage(''), 3000);
+              }} style={{ padding: '8px 24px', backgroundColor: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)', opacity: !approvalComment.trim() ? 0.6 : 1 }}>
+                Reject
               </Button>
             </div>
           </div>
@@ -2093,6 +2225,10 @@ export function SOWDraft({
                 setCurrentProcessingStep(0);
                 setIsProcessing(true);
                 
+                // Reset the status of the section so it can be approved/rejected again
+                const newItems = [...tocItems];
+                newItems[regeneratePopupSection].status = undefined;
+                
                 // Add to Activity Log
                 const newActivity: ActivityItem = {
                   id: `act-${Date.now()}`,
@@ -2106,8 +2242,11 @@ export function SOWDraft({
                 };
                 setActivityLog(prev => [newActivity, ...prev]);
                 
-                setToastMessage('Section regenerated successfully.');
-                setTimeout(() => setToastMessage(''), 3000);
+                setTimeout(() => {
+                  setTocItems(newItems);
+                  setToastMessage('Section regenerated.');
+                  setTimeout(() => setToastMessage(''), 3000);
+                }, 4400);
               }} style={{ padding: '8px 24px', opacity: !regenerationInstructions.trim() ? 0.6 : 1 }}>
                 <Icon name="sparkles" size={16} /> Regenerate
               </Button>
@@ -2157,7 +2296,7 @@ export function SOWDraft({
             overflow: 'hidden'
           }}>
             <div key="gen" className="fade-in-content" style={{ textAlign: 'center', marginBottom: '16px' }}>
-              <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-accent-soft)', color: 'var(--app-color-accent)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+              <div style={{ width: '40px', height: '40px', backgroundColor: 'var(--app-color-primary-soft)', color: 'var(--app-color-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <Icon name="loader" size={20} className="icon-spin" />
               </div>
               <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', marginBottom: '6px' }}>
@@ -2174,7 +2313,7 @@ export function SOWDraft({
                 <span style={{ fontWeight: 600, color: 'var(--app-color-primary)' }}>{Math.round(processingProgress)}%</span>
               </div>
               <div style={{ height: '6px', backgroundColor: 'var(--app-color-surface-muted)', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', backgroundColor: 'var(--app-color-accent)', width: `${processingProgress}%`, transition: 'width 0.1s linear' }} />
+                <div style={{ height: '100%', backgroundColor: 'var(--app-color-primary)', width: `${processingProgress}%`, transition: 'width 0.1s linear' }} />
               </div>
               <div style={{ textAlign: 'right', fontSize: '11px', color: 'var(--app-color-text-muted)', marginTop: '6px' }}>
                 Estimated remaining time: {Math.max(0, Math.ceil(14 - (processingProgress / 100 * 14)))}s
@@ -2190,7 +2329,7 @@ export function SOWDraft({
                     <li key={idx} style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
                       fontSize: '13px',
-                      color: isCompleted ? 'var(--app-color-text)' : isCurrent ? 'var(--app-color-accent)' : 'var(--app-color-text-muted)',
+                      color: isCompleted ? 'var(--app-color-text)' : isCurrent ? 'var(--app-color-primary)' : 'var(--app-color-text-muted)',
                       opacity: (!isCompleted && !isCurrent) ? 0.5 : 1
                     }}>
                       {isCompleted ? <Icon name="check-circle" size={16} style={{ color: 'var(--app-color-success)' }} /> :
@@ -2315,20 +2454,36 @@ export function SOWDraft({
       {/* Hover Popovers */}
       {(isDraftMode || isReviewMode || isApprovedMode) && document.getElementById('topbar-right-portal-target') && createPortal(
         <>
-          <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 'normal' }}>Last updated &bull; 10 min ago</span>
-          <div 
-            ref={badgeRef}
-            onMouseEnter={handleBadgeMouseEnter}
-            onMouseLeave={() => setShowBadgeHover(false)}
-            style={{ cursor: 'default', display: 'flex', alignItems: 'center' }}
-          >
-            {isDraftMode ? (
-              <Badge tone="neutral">Draft</Badge>
-            ) : isApprovedMode ? (
-              <Badge tone="success">Approved</Badge>
-            ) : (
-              <Badge tone="warning">In Review</Badge>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', animation: 'fadeIn 0.3s ease-out' }}>
+            {/* Assign Reviewer Button (PMO only) */}
+            {userRole === 'PMO' && !isApprovedMode && (
+              <Button variant="secondary" onClick={() => { setAddReviewerSectionId('all'); setNewReviewerSections(sections.filter(s => s.included).map(s => s.name)); }} disabled={isProcessing}>
+                <Icon name="user-plus" size={16} /> Assign Reviewer
+              </Button>
             )}
+
+            {/* Share Button (PMO only) */}
+            {userRole === 'PMO' && !isApprovedMode && (
+              <Button variant="secondary" onClick={() => setIsShareModalOpen(true)} disabled={isProcessing}>
+                <Icon name="share-2" size={16} /> Share
+              </Button>
+            )}
+            
+            <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 'normal' }}>Last updated &bull; 10 min ago</span>
+            <div 
+              ref={badgeRef}
+              onMouseEnter={handleBadgeMouseEnter}
+              onMouseLeave={() => setShowBadgeHover(false)}
+              style={{ cursor: 'default', display: 'flex', alignItems: 'center' }}
+            >
+              {isDraftMode ? (
+                <Badge tone="neutral">Draft</Badge>
+              ) : isApprovedMode ? (
+                <Badge tone="success">Approved</Badge>
+              ) : (
+                <Badge tone="warning">In Review</Badge>
+              )}
+            </div>
           </div>
         </>,
         document.getElementById('topbar-right-portal-target')!
