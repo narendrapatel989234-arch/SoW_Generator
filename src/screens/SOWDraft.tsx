@@ -233,6 +233,7 @@ export function SOWDraft({
 }: SOWDraftProps) {
   const [activeTab, setActiveTab] = useState<'rfp' | 'configure' | 'sow' | 'activity'>('sow');
   const [hoveredScoreIndex, setHoveredScoreIndex] = useState<number | null>(null);
+  const [hoveredReviewerIndex, setHoveredReviewerIndex] = useState<number | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   
   // Add Reviewer Modal State
@@ -842,6 +843,7 @@ export function SOWDraft({
                             ) : isLocked ? null : item.status === 'Approved' ? (
                               <span title="Approved" style={{ display: 'flex' }}><Icon name="check-circle" size={18} style={{ color: 'var(--app-color-success)' }} /></span>
                             ) : (
+                              <>
                                 <div 
                                   onMouseEnter={() => setHoveredScoreIndex(idx)}
                                   onMouseLeave={() => setHoveredScoreIndex(null)}
@@ -883,6 +885,40 @@ export function SOWDraft({
                                     </div>
                                   )}
                                 </div>
+                                {isReviewMode && item.assignedReviewer && (
+                                  <div 
+                                    onMouseEnter={() => setHoveredReviewerIndex(idx)}
+                                    onMouseLeave={() => setHoveredReviewerIndex(null)}
+                                    style={{ position: 'relative', display: 'flex' }}
+                                  >
+                                    <div style={{
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      cursor: 'default', color: 'var(--app-color-text-muted)',
+                                      padding: '4px', borderRadius: '4px',
+                                      transition: 'background-color 0.2s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                    >
+                                      <Icon name="user" size={16} />
+                                    </div>
+                                    
+                                    {hoveredReviewerIndex === idx && (
+                                      <div className="context-menu-animate" style={{
+                                        position: 'absolute', top: 'calc(100% + 8px)', right: '0',
+                                        backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
+                                        borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 100,
+                                        width: 'max-content', padding: '8px 12px',
+                                        color: 'var(--app-color-text)', fontSize: '12px', lineHeight: 1.4,
+                                        fontWeight: 500, whiteSpace: 'nowrap', textAlign: 'left'
+                                      }}>
+                                        <div style={{ fontSize: '11px', color: 'var(--app-color-text-muted)', marginBottom: '2px', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Reviewer</div>
+                                        <div>{item.assignedReviewer}</div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             )}
                             {(!isApprovedMode && item.status !== 'Approved' && (userRole !== 'Reviewer' || isAssigned)) && (hoveredTocIndex === idx || openTocMenuIndex === idx) && (
                               <div style={{ position: 'relative' }}>
@@ -1069,42 +1105,6 @@ export function SOWDraft({
               <Card title={
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ fontWeight: 600, fontSize: '15px' }}>Supporting Documents</div>
-                  </div>
-                </div>
-              }>
-                <div className="supporting-docs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
-                  {[
-                    { name: 'Architecture_Diagrams.png', size: '1.8 MB' },
-                    { name: 'Security_Compliance_Guidelines.pdf', size: '3.4 MB' },
-                    { name: 'Vendor_Q_and_A.docx', size: '0.9 MB' },
-                    { name: 'Legacy_API_Specs.json', size: '2.1 MB' }
-                  ].map((doc, i) => (
-                    <div 
-                      key={i} 
-                      className="file-item"
-                      style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
-                      onClick={() => setPreviewFile(doc)}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                        <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
-                          <Icon name="file-text" size={20} />
-                        </div>
-                        <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
-                          <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
-                          <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
-                            <span>{doc.size}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card title={
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ fontWeight: 600, fontSize: '15px' }}>Applicable Tags</div>
                   </div>
                 </div>
@@ -1213,6 +1213,43 @@ export function SOWDraft({
                   </div>
                 </div>
               </Card>
+
+              <Card title={
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '15px' }}>Supporting Documents</div>
+                  </div>
+                </div>
+              }>
+                <div className="supporting-docs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                  {[
+                    { name: 'Architecture_Diagrams.png', size: '1.8 MB' },
+                    { name: 'Security_Compliance_Guidelines.pdf', size: '3.4 MB' },
+                    { name: 'Vendor_Q_and_A.docx', size: '0.9 MB' },
+                    { name: 'Legacy_API_Specs.json', size: '2.1 MB' }
+                  ].map((doc, i) => (
+                    <div 
+                      key={i} 
+                      className="file-item"
+                      style={{ margin: 0, display: 'flex', flexDirection: 'column', padding: '12px', border: '1px solid var(--app-color-border)', borderRadius: '8px', backgroundColor: 'var(--app-color-surface)', cursor: 'pointer' }}
+                      onClick={() => setPreviewFile(doc)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                        <div className="file-item__icon-wrapper" style={{ marginRight: '12px' }}>
+                          <Icon name="file-text" size={20} />
+                        </div>
+                        <div className="file-item__main" style={{ flex: 1, minWidth: 0 }}>
+                          <div className="file-item__name" style={{ fontWeight: 500, fontSize: '14px', color: 'var(--app-color-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
+                          <div className="file-item__meta" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--app-color-text-muted)', marginTop: '4px' }}>
+                            <span>{doc.size}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
 
             </div>
           </div>
