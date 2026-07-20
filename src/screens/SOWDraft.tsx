@@ -14,14 +14,14 @@ import { type Section } from '../screens/ValidateSOW';
 
 const initialTocItems = [
   { title: 'Executive Summary', score: 95, status: 'Approved' },
-  { title: 'Objectives', score: 82, status: 'With Reviewer', assignedReviewer: 'David Brown' },
-  { title: 'Project Scope', score: 88, status: 'Awaiting PMO', assignedReviewer: 'Sujith Thomas', reviewerComment: 'Updated based on the requested security requirements.' },
+  { title: 'Objectives', score: 82, status: 'With Reviewer', assignedReviewers: ['David Brown'] },
+  { title: 'Project Scope', score: 88, status: 'Awaiting PMO', assignedReviewers: ['Sujith Thomas'], reviewerComment: 'Updated based on the requested security requirements.' },
   { title: 'Solution Architecture', score: 54, status: 'Approved' },
   { title: 'Technical Requirements', score: 90, status: 'Approved' },
   { title: 'Deliverables', score: 94, status: 'Approved' },
-  { title: 'Timeline', score: 87, status: 'With Reviewer', assignedReviewer: 'David Brown' },
-  { title: 'Commercial Proposal', score: 76, status: 'With Reviewer', assignedReviewer: 'Gopika Nair' },
-  { title: 'Risks & Assumptions', score: 86, status: 'Awaiting PMO', assignedReviewer: 'Narendra Patel', reviewerComment: 'Added risk 4.3 regarding compliance.' },
+  { title: 'Timeline', score: 87, status: 'With Reviewer', assignedReviewers: ['David Brown'] },
+  { title: 'Commercial Proposal', score: 76, status: 'With Reviewer', assignedReviewers: ['Gopika Nair'] },
+  { title: 'Risks & Assumptions', score: 86, status: 'Awaiting PMO', assignedReviewers: ['Narendra Patel'], reviewerComment: 'Added risk 4.3 regarding compliance.' },
   { title: 'Acceptance Criteria', score: 91, status: 'Approved' }
 ];
 
@@ -274,8 +274,12 @@ export function SOWDraft({
       
       // Update tocItems to reflect the assignment immediately
       setTocItems(prev => prev.map(t => {
-        if (newReviewerSections.includes(t.title) && !t.assignedReviewer && selectedReviewers.length > 0) {
-          return { ...t, assignedReviewer: selectedReviewers[0].name };
+        if (newReviewerSections.includes(t.title) && selectedReviewers.length > 0) {
+          const newReviewers = selectedReviewers.map(r => r.name);
+          return { 
+            ...t, 
+            assignedReviewers: Array.from(new Set([...(t.assignedReviewers || []), ...newReviewers]))
+          };
         }
         return t;
       }));
@@ -283,7 +287,7 @@ export function SOWDraft({
     }
   };
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
-  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string, assignedReviewer?: string, reviewerComment?: string}[]>(
+  const [tocItems, setTocItems] = useState<{title: string, score: number, status?: string, assignedReviewers?: string[], reviewerComment?: string}[]>(
     selectedSections && selectedSections.length > 0
       ? selectedSections.map(title => ({ title, score: Math.random() > 0.2 ? Math.floor(Math.random() * 20) + 80 : Math.floor(Math.random() * 30) + 50 }))
       : initialTocItems
@@ -773,7 +777,7 @@ export function SOWDraft({
                   ))
                 ) : (
                   tocItems.map((item, idx) => {
-                    const isAssigned = item.assignedReviewer === 'David Brown';
+                    const isAssigned = item.assignedReviewers?.includes('David Brown');
                     const isLocked = userRole === 'Reviewer' && !isAssigned;
 
                     return (
@@ -856,7 +860,7 @@ export function SOWDraft({
                                     </div>
                                   )}
                                 </div>
-                                {item.assignedReviewer && (
+                                {item.assignedReviewers && item.assignedReviewers.length > 0 && (
                                   <div 
                                     onMouseEnter={() => setHoveredReviewerIndex(idx)}
                                     onMouseLeave={() => setHoveredReviewerIndex(null)}
@@ -883,13 +887,13 @@ export function SOWDraft({
                                         color: 'var(--app-color-text)', fontSize: '12px', lineHeight: 1.4,
                                         fontWeight: 500, whiteSpace: 'nowrap', textAlign: 'left'
                                       }}>
-                                        <div style={{ fontSize: '11px', color: 'var(--app-color-text-muted)', marginBottom: '2px', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Reviewer</div>
-                                        <div>{item.assignedReviewer}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--app-color-text-muted)', marginBottom: '2px', fontWeight: 600, textTransform: 'uppercase' }}>Assigned Reviewer{item.assignedReviewers.length > 1 ? 's' : ''}</div>
+                                        <div>{item.assignedReviewers.join(', ')}</div>
                                       </div>
                                     )}
                                   </div>
                                 )}
-                                {!item.assignedReviewer && userRole !== 'Reviewer' && !isApprovedMode && item.status !== 'Approved' && item.status !== 'Rejected' && item.status !== 'Rework Required' && (
+                                {(!item.assignedReviewers || item.assignedReviewers.length === 0) && userRole !== 'Reviewer' && !isApprovedMode && item.status !== 'Approved' && item.status !== 'Rejected' && item.status !== 'Rework Required' && (
                                   <div 
                                     onClick={(e) => { e.stopPropagation(); setAddReviewerSectionId(item.title); setNewReviewerSections([item.title]); }}
                                     style={{ position: 'relative', display: 'flex' }}
@@ -967,7 +971,8 @@ export function SOWDraft({
                                         </button>
                                       )}
                                       
-                                      <button 
+                                      {!(userRole === 'Reviewer' && item.status === 'Approved') && (
+                                        <button 
                                         onClick={(e) => { e.stopPropagation(); setRegeneratePopupSection(idx); setOpenTocMenuIndex(null); }}
                                         style={{
                                           display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
@@ -980,7 +985,9 @@ export function SOWDraft({
                                       >
                                         <Icon name="refresh-cw" size={18} /> Regenerate Section
                                       </button>
+                                      )}
                                       
+                                      {!(userRole === 'Reviewer' && item.status === 'Approved') && (
                                       <button 
                                         onClick={(e) => { 
                                           if (item.status === 'Rejected' || item.status === 'Rework Required') return;
@@ -999,6 +1006,7 @@ export function SOWDraft({
                                       >
                                         <Icon name="check" size={18} /> Approve
                                       </button>
+                                      )}
                                       
                                       {userRole !== 'Reviewer' && (
                                         <button 
@@ -1017,7 +1025,7 @@ export function SOWDraft({
                                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                           disabled={item.status === 'Rejected' || item.status === 'Rework Required'}
                                         >
-                                          <Icon name="x-circle" size={18} /> Reject
+                                          <Icon name="corner-up-left" size={18} /> Rework
                                         </button>
                                       )}
                                     </div>
@@ -1082,7 +1090,7 @@ export function SOWDraft({
                       activeSectionIndex={activeSectionIndex}
                       isGenerating={false}
                       readOnly={isApprovedMode}
-                      lockedSections={tocItems.map(item => userRole === 'Reviewer' && item.assignedReviewer !== 'David Brown')}
+                      lockedSections={tocItems.map(item => userRole === 'Reviewer' && (!item.assignedReviewers?.includes('David Brown') || item.status === 'Approved'))}
                       onShowToast={(msg) => {
                         setToastMessage(msg);
                         setTimeout(() => setToastMessage(''), 3000);
@@ -2048,8 +2056,8 @@ export function SOWDraft({
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
-              <Icon name="x-circle" size={20} style={{ color: 'var(--app-color-danger)', marginRight: '12px' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-danger)', margin: 0 }}>Reject Section</h2>
+              <Icon name="corner-up-left" size={20} style={{ color: 'var(--app-color-danger)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-danger)', margin: 0 }}>Rework Section</h2>
               <button 
                 onClick={() => setRejectPopupSection(null)}
                 style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
@@ -2061,7 +2069,7 @@ export function SOWDraft({
             {/* Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
-                Are you sure you want to reject this section? A comment is required.
+                Are you sure you want to request rework for this section? A comment is required.
               </p>
               {/* Information Card */}
               <div style={{ 
@@ -2078,12 +2086,12 @@ export function SOWDraft({
               {/* Reject Comments */}
               <div style={{ width: '100%', textAlign: 'left' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
-                  Reason for Rejection <span style={{ color: 'var(--app-color-danger)' }}>*</span>
+                  Reason for Rework <span style={{ color: 'var(--app-color-danger)' }}>*</span>
                 </label>
                 <textarea 
                   value={approvalComment}
                   onChange={(e) => setApprovalComment(e.target.value)}
-                  placeholder="Explain why this section is being rejected..."
+                  placeholder="Explain why this section requires rework..."
                   style={{
                     width: '100%', height: '72px', padding: '12px',
                     border: '1px solid var(--app-color-border)', borderRadius: '6px',
@@ -2112,8 +2120,8 @@ export function SOWDraft({
                 const newActivity: ActivityItem = {
                   id: `act-${Date.now()}`,
                   category: 'review',
-                  title: 'Section Rejected',
-                  description: `Rejected the ${tocItems[rejectPopupSection]?.title} section`,
+                  title: 'Section Rework Requested',
+                  description: `Requested rework for the ${tocItems[rejectPopupSection]?.title} section`,
                   sectionName: tocItems[rejectPopupSection]?.title,
                   user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
                   timestamp: new Date(),
@@ -2126,7 +2134,7 @@ export function SOWDraft({
                 setToastMessage('Rework requested for section.');
                 setTimeout(() => setToastMessage(''), 3000);
               }} style={{ padding: '8px 24px', backgroundColor: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)', opacity: !approvalComment.trim() ? 0.6 : 1 }}>
-                Reject
+                Rework
               </Button>
             </div>
           </div>

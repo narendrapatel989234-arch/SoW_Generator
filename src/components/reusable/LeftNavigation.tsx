@@ -19,7 +19,7 @@ export const navigationSections: NavSection[] = [
     label: 'Main',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { id: 'rfp-to-sow', label: 'Upload RFP', icon: 'upload' },
+      { id: 'rfp-to-sow', label: 'Upload Requirements', icon: 'upload' },
       { id: 'review', label: 'Review', icon: 'check-circle' },
       { id: 'templates', label: 'Template & Configuration', icon: 'file-text' }
     ]

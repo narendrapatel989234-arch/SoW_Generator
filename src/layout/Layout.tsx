@@ -49,10 +49,10 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
             activeScreen === 'review' ? 'Review' : 
             activeScreen === 'templates' ? (templatesView === 'details' ? 'Statement of Work (SOW)' : 'Template & Configuration') :
             activeScreen === 'activity-log' ? 'Activity Log' :
-            'Upload RFP'
+            'Upload Requirements'
           } 
           breadcrumb={
-            activeScreen === 'validate-sow' ? 'Upload RFP' :
+            activeScreen === 'validate-sow' ? 'Upload Requirements' :
             activeScreen === 'sow-draft' || activeScreen === 'sow-draft-review' || activeScreen === 'sow-draft-approved' ? 'Review' : 
             (activeScreen === 'templates' && templatesView === 'details') ? 'Template & Configuration' :
             undefined
