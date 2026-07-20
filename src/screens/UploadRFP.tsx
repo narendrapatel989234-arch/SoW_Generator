@@ -297,10 +297,10 @@ export function UploadRFP({ onTransitionToDraft }: UploadRFPProps) {
         <Card title={
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div>RFP Document <span style={{ color: 'var(--app-color-danger)' }}>*</span></div>
+              <div>Upload Requirements <span style={{ color: 'var(--app-color-danger)' }}>*</span></div>
             </div>
             <div style={{ color: 'var(--app-color-text-muted)', fontSize: '13px', fontWeight: 400 }}>
-              Upload the main RFP document that will be used to generate the Scope of Work.
+              Upload the main requirements document that will be used to generate the Scope of Work.
             </div>
           </div>
         }>
