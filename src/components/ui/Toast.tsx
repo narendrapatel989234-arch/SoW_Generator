@@ -85,19 +85,10 @@ export function Toast({
         display: 'flex',
         flexDirection: 'column',
         gap: '12px',
-        animation: isClosing ? 'toastFadeOut 0.3s ease forwards' : 'toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         overflow: 'hidden'
       }}
     >
       <style>{`
-        @keyframes toastSlideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes toastFadeOut {
-          from { transform: translateX(0); opacity: 1; }
-          to { transform: translateX(10px); opacity: 0; }
-        }
         @keyframes toastProgress {
           from { width: 100%; }
           to { width: 0%; }

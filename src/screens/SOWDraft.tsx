@@ -95,24 +95,6 @@ const mockActivities: ActivityItem[] = [
     metadata: { approvalComment: 'Looks good. Business goals align with the RFP.' }
   },
   {
-    id: 'act-15',
-    category: 'edit',
-    title: 'Section Regenerated',
-    description: 'Requested regeneration for the Timeline section',
-    sectionName: 'Timeline',
-    user: 'David Brown',
-    timestamp: new Date(Date.now() - 1000 * 60 * 5),
-    metadata: { aiInstruction: 'Please refine the timeline to highlight phase 1 deliverables more clearly.' }
-  },
-  {
-    id: 'act-14',
-    category: 'export',
-    title: 'Document Exported',
-    description: 'Exported as PDF Document (.pdf)',
-    user: 'Dipali Balkrishna Patil',
-    timestamp: new Date(Date.now() - 1000 * 60 * 2)
-  },
-  {
     id: 'act-13',
     category: 'approval',
     title: 'Final Document Approved',
@@ -120,27 +102,6 @@ const mockActivities: ActivityItem[] = [
     user: 'Project Sponsor',
     timestamp: new Date(Date.now() - 1000 * 60 * 15),
     metadata: { approvalComment: 'Looks great. Proceed with sending to client.' }
-  },
-  {
-    id: 'act-12',
-    category: 'review',
-    title: 'Review Comments Added',
-    description: 'Added 3 comments regarding pricing structure.',
-    sectionName: 'Commercial Proposal',
-    user: 'Finance Reviewer',
-    timestamp: new Date(Date.now() - 1000 * 60 * 35)
-  },
-  {
-    id: 'act-10',
-    category: 'generation',
-    title: 'Section Regenerated',
-    description: 'Commercial Proposal regenerated using AI.',
-    sectionName: 'Commercial Proposal',
-    user: 'AI Assistant',
-    timestamp: new Date(Date.now() - 1000 * 60 * 85),
-    metadata: { aiInstruction: 'Make the pricing breakdown more granular and aligned with Azure consumption models.' },
-    previousValue: 'Lump sum pricing of $150,000 for the migration.',
-    updatedValue: 'Detailed breakdown: Compute $50k, Storage $30k, Services $70k.'
   },
   {
     id: 'act-9',
@@ -173,50 +134,12 @@ const mockActivities: ActivityItem[] = [
     metadata: { approvalComment: 'Please review the cloud migration strategy and ensure it aligns with our enterprise security standards.' }
   },
   {
-    id: 'act-5',
-    category: 'tag',
-    title: 'Applicable Tags Updated',
-    description: 'Modified tags to better align with the reference SOWs',
-    user: 'Dipali Balkrishna Patil',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-    previousValue: ['Healthcare', 'Azure'],
-    updatedValue: ['Healthcare', 'Azure', 'Compliance', 'Security']
-  },
-  {
-    id: 'act-4',
-    category: 'generation',
-    title: 'Section Regenerated',
-    description: 'Solution Architecture regenerated using AI.',
-    sectionName: 'Solution Architecture',
-    user: 'AI Assistant',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12),
-    metadata: { aiInstruction: 'Rewrite the architecture section to emphasize a microservices approach using Azure Kubernetes Service (AKS) and highlight the zero-trust security model.' },
-    previousValue: 'The architecture uses a monolithic structure deployed on Azure VMs.',
-    updatedValue: 'The revised architecture employs a microservices model hosted on Azure Kubernetes Service (AKS), incorporating a zero-trust security framework.'
-  },
-  {
     id: 'act-3',
     category: 'generation',
     title: 'Draft Generated',
     description: 'Initial SOW draft generated successfully from selected inputs.',
     user: 'AI Assistant',
     timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24)
-  },
-  {
-    id: 'act-2',
-    category: 'upload',
-    title: 'Supporting Documents Uploaded',
-    description: 'Uploaded 2 architecture diagrams.',
-    user: 'Dipali Balkrishna Patil',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 - 1000 * 60 * 2)
-  },
-  {
-    id: 'act-1',
-    category: 'upload',
-    title: 'RFP Uploaded',
-    description: 'Uploaded initial RFP document.',
-    user: 'Dipali Balkrishna Patil',
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 - 1000 * 60 * 5)
   }
 ];
 
@@ -441,21 +364,30 @@ export function SOWDraft({
     // Broadcast save to other tabs
     const sectionName = tocItems[activeSectionIndex]?.title;
     if (sectionName) {
+      const currentUser = userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil';
       localStorage.setItem('sow-section-updated', JSON.stringify({
         sectionName,
         timestamp: Date.now(),
-        user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
+        user: currentUser,
         sowId: 'SOW-2026-001'
       }));
+
+      // Update local activity log
+      setActivityLog(prev => [{
+        id: `act-${Date.now()}`,
+        category: 'edit',
+        title: 'Content Updated',
+        description: `Manually edited the ${sectionName} content`,
+        sectionName,
+        user: currentUser,
+        timestamp: new Date()
+      }, ...prev]);
     }
 
     setToastMessage('Section saved successfully.');
     
-    // Demo flow: Simulate a switch to another user by reloading the page
+    // Demo flow: Show sync toast without reloading
     sessionStorage.setItem('demo-show-sync-toast', 'true');
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
   };
   
   const handleRefreshSync = () => {
@@ -913,57 +845,6 @@ export function SOWDraft({
           </div>
 
           <div style={{ display: 'flex', gap: '12px', paddingBottom: '12px' }}>
-            {userRole === 'Reviewer' && (
-              <>
-                <Button 
-                  ref={saveBtnRef}
-                  variant="primary" 
-                  disabled={!hasUnsavedChanges} 
-                  onClick={handleSave} 
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-                  onMouseEnter={handleSaveMouseEnter}
-                  onMouseLeave={() => setShowSaveTooltip(false)}
-                  onFocus={handleSaveMouseEnter}
-                  onBlur={() => setShowSaveTooltip(false)}
-                  aria-describedby="save-tooltip"
-                >
-                  <Icon name="save" size={16} /> Save
-                </Button>
-                
-                {showSaveTooltip && createPortal(
-                  <div 
-                    id="save-tooltip"
-                    role="tooltip"
-                    style={{
-                      position: 'fixed',
-                      ...saveTooltipStyle,
-                      backgroundColor: 'var(--app-color-surface)',
-                      border: '1px solid var(--app-color-border)',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-                      padding: '12px',
-                      zIndex: 10000,
-                      fontSize: '13px',
-                      lineHeight: '18px',
-                      color: 'var(--app-color-text)',
-                      textAlign: 'left',
-                      animation: 'fadeIn 0.2s ease-out'
-                    }}
-                  >
-                    Save as you go. Your unsaved changes may be overwritten by another reviewer.
-                    <div style={{
-                      position: 'absolute',
-                      ...saveTooltipArrowStyle,
-                      width: '10px',
-                      height: '10px',
-                      backgroundColor: 'var(--app-color-surface)',
-                      transform: 'rotate(45deg)'
-                    }} />
-                  </div>,
-                  document.body
-                )}
-              </>
-            )}
             {userRole !== 'Reviewer' && exportBlock}
             {userRole === 'PMO' && (() => {
               const isFullyApproved = tocItems.length > 0 && tocItems.every(item => item.status === 'Approved');
@@ -1326,13 +1207,15 @@ export function SOWDraft({
                       activeSectionIndex={activeSectionIndex}
                       isGenerating={false}
                       readOnly={isApprovedMode}
-                      lockedSections={tocItems.map(item => userRole === 'Reviewer' && (!item.assignedReviewers?.includes('David Brown') || item.status === 'Approved'))}
+                      lockedSections={tocItems.map(item => item.status === 'Approved' || (userRole === 'Reviewer' && !item.assignedReviewers?.includes('David Brown')))}
                       onShowToast={(msg) => {
                         setToastMessage(msg);
                         setTimeout(() => setToastMessage(''), 3000);
                       }}
                       onContentChange={(changed) => setHasUnsavedChanges(changed)}
                       onSectionChange={setActiveSectionIndex}
+                      onSave={handleSave}
+                      saveDisabled={!hasUnsavedChanges}
                     />
                   </>
                 )}
@@ -1876,9 +1759,8 @@ export function SOWDraft({
               </p>
             </div>
             <div style={{ padding: '16px 24px', backgroundColor: 'var(--app-color-surface-muted)', borderTop: '1px solid var(--app-color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <Button variant="ghost" onClick={() => setShowUnsavedModal(false)}>Cancel</Button>
               <Button 
-                variant="ghost" 
+                variant="secondary" 
                 style={{ color: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)' }}
                 onClick={() => {
                   setHasUnsavedChanges(false);
@@ -2263,17 +2145,12 @@ export function SOWDraft({
             {/* Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ 
-                backgroundColor: 'var(--app-color-primary-soft)', 
-                border: '1px solid var(--app-color-primary)', 
-                opacity: 0.8,
-                borderRadius: '8px', 
-                padding: '8px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
                 <Icon name="info" size={14} style={{ color: 'var(--app-color-primary)', flexShrink: 0 }} />
-                <span style={{ fontSize: '12px', color: 'var(--app-color-text)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '12px', color: 'var(--app-color-primary)', whiteSpace: 'nowrap' }}>
                   <strong>Note:</strong> This content is AI-generated. Please review it carefully.
                 </span>
               </div>
@@ -2516,17 +2393,12 @@ export function SOWDraft({
             {/* Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ 
-                backgroundColor: 'var(--app-color-primary-soft)', 
-                border: '1px solid var(--app-color-primary)', 
-                opacity: 0.8,
-                borderRadius: '8px', 
-                padding: '8px 12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
                 <Icon name="info" size={14} style={{ color: 'var(--app-color-primary)', flexShrink: 0 }} />
-                <span style={{ fontSize: '12px', color: 'var(--app-color-text)', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '12px', color: 'var(--app-color-primary)', whiteSpace: 'nowrap' }}>
                   <strong>Note:</strong> This content is AI-generated. Please review it carefully.
                 </span>
               </div>
@@ -2849,7 +2721,6 @@ export function SOWDraft({
               </Button>
             )}
             
-            <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 'normal' }}>Last updated &bull; 10 min ago</span>
             <div 
               ref={badgeRef}
               onMouseEnter={handleBadgeMouseEnter}
@@ -2929,9 +2800,7 @@ export function SOWDraft({
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
                 <div style={{ color: 'var(--app-color-text-muted)' }}>Not yet sent for review</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-                  <span style={{ color: 'var(--app-color-text-muted)' }}>Last updated :</span>
-                  <span style={{ fontWeight: 600 }}>10 min ago</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
                   <span style={{ color: 'var(--app-color-text-muted)' }}>Version :</span>

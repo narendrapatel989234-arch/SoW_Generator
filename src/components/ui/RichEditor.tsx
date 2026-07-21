@@ -12,9 +12,11 @@ interface RichEditorProps {
   onShowToast?: (msg: string) => void;
   onContentChange?: (hasChanges: boolean) => void;
   triggerDemoSync?: boolean;
+  onSave?: () => void;
+  saveDisabled?: boolean;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast, onContentChange, triggerDemoSync }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast, onContentChange, triggerDemoSync, onSave, saveDisabled }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
@@ -52,7 +54,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The expected outcome of this engagement is a well-defined and executable Scope of Work that provides clarity on scope, timelines, deliverables, dependencies, acceptance criteria, and governance. The generated draft should serve as a strong starting point for review, negotiation, and final approval between both parties.</p>`;
           break;
         case 'Objectives':
-          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The primary objectives of this engagement are carefully structured to address the core business challenges identified during the discovery phase. By executing on these objectives, we aim to deliver measurable improvements in performance, scalability, and cost efficiency.</p>
+          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The primary objectives of this engagement are carefully structured to address the core business challenges identified during the discovery phase. By executing on these objectives, we aim to deliver measurable improvements in performance, scalability, and cost efficiency.<span style="display: inline-block; padding: 2px 8px; border-radius: 12px; background-color: rgba(245, 158, 11, 0.1); color: var(--app-color-warning); font-size: 11px; font-weight: 600; margin-left: 8px;">Conflicting content to be confirmed by M42 Team</span></p>
           <p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">Key technical and business objectives include:</p>
           <ul style="margin-bottom: 16px; padding-left: 24px; line-height: 1.6; color: var(--app-color-text);">
             <li><strong>Cost Optimization:</strong> Reduce operational expenditure by approximately 30% through dynamic cloud scaling, resource right-sizing, and decommissioning of legacy on-premises hardware.</li>
@@ -135,7 +137,7 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
           </table>`;
           break;
         case 'Timeline':
-          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The project is estimated to be completed over a period of 12 weeks, divided into four distinct sprints. This timeline is contingent upon timely approvals and resource availability from the client.</p>
+          html += `<p style="margin-bottom: 12px; line-height: 1.6; color: var(--app-color-text);">The project is estimated to be completed over a period of 12 weeks, divided into four distinct sprints. This timeline is contingent upon timely approvals and resource availability from the client.<span style="display: inline-block; padding: 2px 8px; border-radius: 12px; background-color: rgba(245, 158, 11, 0.1); color: var(--app-color-warning); font-size: 11px; font-weight: 600; margin-left: 8px;">Conflicting content to be confirmed by M42 Team</span></p>
           <ul style="margin-bottom: 16px; padding-left: 24px; line-height: 1.6; color: var(--app-color-text);">
             <li><strong>Phase 1: Discovery & Design (Weeks 1-2):</strong> Requirements gathering, architecture finalization, and approval of the ADD.</li>
             <li><strong>Phase 2: Infrastructure Provisioning (Weeks 3-4):</strong> Execution of IaC scripts, network setup, and CI/CD pipeline configuration.</li>
@@ -524,6 +526,32 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
         <div className="toolbar-separator" />
         
         <ToolbarButton icon="remove-formatting" command="clearFormat" title="Clear Formatting" />
+        
+        <div style={{ flex: 1 }}></div>
+        
+        {!isCurrentSectionLocked && onSave && (
+          <button 
+            type="button"
+            onClick={onSave}
+            disabled={saveDisabled}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: 'var(--app-color-primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: saveDisabled ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: 500,
+              fontSize: '13px',
+              opacity: saveDisabled ? 0.7 : 1
+            }}
+          >
+            <Icon name="save" size={14} /> Save
+          </button>
+        )}
       </div>
       )}
 
