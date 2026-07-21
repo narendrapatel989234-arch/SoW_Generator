@@ -11,9 +11,10 @@ interface RichEditorProps {
   lockedSections?: boolean[];
   onShowToast?: (msg: string) => void;
   onContentChange?: (hasChanges: boolean) => void;
+  triggerDemoSync?: boolean;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast, onContentChange }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast, onContentChange, triggerDemoSync }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
@@ -202,6 +203,16 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     }
   }, [isGenerating, contentHtml]);
 
+  // Demo sync
+  useEffect(() => {
+    if (triggerDemoSync && editorRef.current) {
+      const saved = localStorage.getItem('demo-sow-content');
+      if (saved) {
+        editorRef.current.innerHTML = saved;
+      }
+    }
+  }, [triggerDemoSync]);
+
   // Apply contenteditable false to locked sections
   useEffect(() => {
     if (!editorRef.current || !lockedSections) return;
@@ -328,14 +339,13 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     };
   }, [readOnly, isGenerating, isRegenerateModalOpen, lockedSections]);
 
-  const handleContentChange = () => {
-    if (editorRef.current && !isGenerating) {
-      const currentHtml = editorRef.current.innerHTML;
-      setContentHtml(currentHtml);
-      updateActiveFormats();
-      if (onContentChange) {
-        onContentChange(true);
-      }
+  const handleInput = () => {
+    updateActiveFormats();
+    if (editorRef.current) {
+      localStorage.setItem('demo-sow-content', editorRef.current.innerHTML);
+    }
+    if (onContentChange) {
+      onContentChange(true);
     }
   };
 
@@ -406,8 +416,10 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
     
     updateActiveFormats();
     if (editorRef.current) {
+      localStorage.setItem('demo-sow-content', editorRef.current.innerHTML);
       editorRef.current.focus();
     }
+    if (onContentChange) onContentChange(true);
   };
 
   const isCurrentSectionLocked = lockedSections ? lockedSections[activeSectionIndex] : false;
@@ -544,8 +556,8 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
               className="smooth-enter"
               ref={editorRef}
               contentEditable={!isGenerating && !readOnly}
-              onInput={handleContentChange}
-              onBlur={handleContentChange}
+              onInput={handleInput}
+              onBlur={handleInput}
               onKeyUp={updateActiveFormats}
               onMouseUp={updateActiveFormats}
               style={{
@@ -721,6 +733,11 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
                         // Using execCommand to natively support Undo
                         document.execCommand('insertText', false, mockImprovedText);
                         
+                        if (editorRef.current) {
+                          localStorage.setItem('demo-sow-content', editorRef.current.innerHTML);
+                        }
+                        if (onContentChange) onContentChange(true);
+
                         if (onShowToast) {
                           onShowToast("Selected content regenerated successfully.");
                         }

@@ -373,8 +373,6 @@ export function SOWDraft({
   const [pendingTab, setPendingTab] = useState<string | null>(null);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
   const [showSaveTooltip, setShowSaveTooltip] = useState(false);
-  const [showApproveInfo, setShowApproveInfo] = useState(false);
-  const [showRegenerateInfo, setShowRegenerateInfo] = useState(false);
   
   // Sync Notification States
   const [showSyncNotification, setShowSyncNotification] = useState(false);
@@ -452,11 +450,17 @@ export function SOWDraft({
     }
 
     setToastMessage('Section saved successfully.');
-    setTimeout(() => setToastMessage(''), 3000);
+    
+    // Demo flow: Simulate a switch to another user by reloading the page
+    sessionStorage.setItem('demo-show-sync-toast', 'true');
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
   };
   
   const handleRefreshSync = () => {
     setShowSyncNotification(false);
+    setTriggerDemoSync(true);
     setHasUnsavedChanges(false);
     setToastMessage('Latest changes synced successfully.');
     setTimeout(() => setToastMessage(''), 3000);
@@ -474,6 +478,7 @@ export function SOWDraft({
   };
 
   const [exportToastMessage, setExportToastMessage] = useState('');
+  const [triggerDemoSync, setTriggerDemoSync] = useState(false);
   
   // Regenerate Section States
   const [regeneratePopupSection, setRegeneratePopupSection] = useState<number | null>(null);
@@ -502,6 +507,16 @@ export function SOWDraft({
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, [activeSectionIndex, tocItems, userRole]);
+
+  // Demo flow check on mount
+  useEffect(() => {
+    if (sessionStorage.getItem('demo-show-sync-toast') === 'true') {
+      sessionStorage.removeItem('demo-show-sync-toast');
+      setTimeout(() => {
+        setShowSyncNotification(true);
+      }, 1000);
+    }
+  }, []);
 
   // Initial load check for missed syncs
   useEffect(() => {
@@ -1180,7 +1195,7 @@ export function SOWDraft({
                                             backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
                                             cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
                                             color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
-                                            marginBottom: '2px',
+                                            whiteSpace: 'nowrap', marginBottom: '2px',
                                             opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
                                           }}
                                           onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
@@ -1198,7 +1213,7 @@ export function SOWDraft({
                                           display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                           backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
                                           cursor: 'pointer', color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
-                                          marginBottom: '2px'
+                                          whiteSpace: 'nowrap', marginBottom: '2px'
                                         }}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
@@ -1217,7 +1232,7 @@ export function SOWDraft({
                                           display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                           backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
                                           cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
-                                          color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left',
+                                          color: 'var(--app-color-text)', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap',
                                           opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
                                         }}
                                         onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
@@ -1238,7 +1253,7 @@ export function SOWDraft({
                                             display: 'flex', alignItems: 'center', gap: '14px', width: '100%', padding: '10px 12px',
                                             backgroundColor: 'transparent', border: 'none', borderRadius: '4px',
                                             cursor: (item.status === 'Rejected' || item.status === 'Rework Required') ? 'not-allowed' : 'pointer',
-                                            color: 'var(--app-color-danger)', fontSize: '14px', textAlign: 'left',
+                                            color: 'var(--app-color-danger)', fontSize: '14px', textAlign: 'left', whiteSpace: 'nowrap',
                                             opacity: (item.status === 'Rejected' || item.status === 'Rework Required') ? 0.5 : 1
                                           }}
                                           onMouseEnter={(e) => { if (item.status !== 'Rejected' && item.status !== 'Rework Required') e.currentTarget.style.backgroundColor = 'var(--app-color-surface-muted)' }}
@@ -1306,6 +1321,7 @@ export function SOWDraft({
                 ) : (
                   <>
                     <RichEditor 
+                      triggerDemoSync={triggerDemoSync}
                       tocItems={tocItems.map(item => item.title)} 
                       activeSectionIndex={activeSectionIndex}
                       isGenerating={false}
@@ -1923,13 +1939,13 @@ export function SOWDraft({
               </p>
               {/* Information Card */}
               <div style={{ 
-                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
-                borderRadius: '8px', border: '1px solid var(--app-color-border)',
-                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+                width: '100%', padding: '12px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '6px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
-                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[reviewerPopupSection as number]?.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Name:</span>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[reviewerPopupSection as number]?.title}</span>
                 </div>
               </div>
               
@@ -2235,30 +2251,6 @@ export function SOWDraft({
               <Icon name="check" size={20} style={{ color: 'var(--app-color-text)', marginRight: '12px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Approve Section</h2>
-                <div 
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
-                  onMouseEnter={() => setShowApproveInfo(true)}
-                  onMouseLeave={() => setShowApproveInfo(false)}
-                >
-                  <Icon name="info" size={16} style={{ color: 'var(--app-color-primary)', cursor: 'pointer' }} />
-                  {showApproveInfo && (
-                    <div style={{
-                      position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-                      backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-                      borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px',
-                      width: '260px', zIndex: 1010, fontSize: '13px', lineHeight: '18px',
-                      color: 'var(--app-color-text)', fontWeight: 400, whiteSpace: 'normal', textAlign: 'center',
-                      animation: 'fadeIn 0.2s ease-out'
-                    }}>
-                      This is an AI generated report. Make sure you verify everything correctly.
-                      <div style={{
-                        position: 'absolute', top: '-6px', left: '50%', transform: 'translateX(-50%) rotate(45deg)',
-                        width: '10px', height: '10px', backgroundColor: 'var(--app-color-surface)',
-                        borderTop: '1px solid var(--app-color-border)', borderLeft: '1px solid var(--app-color-border)'
-                      }} />
-                    </div>
-                  )}
-                </div>
               </div>
               <button 
                 onClick={() => setApprovePopupSection(null)}
@@ -2270,32 +2262,42 @@ export function SOWDraft({
             
             {/* Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ 
+                backgroundColor: 'var(--app-color-primary-soft)', 
+                border: '1px solid var(--app-color-primary)', 
+                opacity: 0.8,
+                borderRadius: '8px', 
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Icon name="info" size={14} style={{ color: 'var(--app-color-primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: 'var(--app-color-text)', whiteSpace: 'nowrap' }}>
+                  <strong>Note:</strong> This content is AI-generated. Please review it carefully.
+                </span>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
                 Are you sure you want to approve this section? Once approved, it will be marked as Approved.
               </p>
               {/* Information Card */}
               <div style={{ 
-                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
-                borderRadius: '8px', border: '1px solid var(--app-color-border)',
-                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+                width: '100%', padding: '12px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '6px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
-                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[approvePopupSection as number]?.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Name:</span>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[approvePopupSection as number]?.title}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Summary:</span>
                   <span 
                     style={{ 
-                      fontSize: '13px', 
+                      fontSize: '12px', 
                       color: 'var(--app-color-text)',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
                       lineHeight: '1.4'
                     }}
-                    title={getSectionSummary(tocItems[approvePopupSection as number]?.title)}
                   >
                     {getSectionSummary(tocItems[approvePopupSection as number]?.title)}
                   </span>
@@ -2398,27 +2400,22 @@ export function SOWDraft({
               </p>
               {/* Information Card */}
               <div style={{ 
-                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
-                borderRadius: '8px', border: '1px solid var(--app-color-border)',
-                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+                width: '100%', padding: '12px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '6px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
-                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[rejectPopupSection as number]?.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Name:</span>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[rejectPopupSection as number]?.title}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Summary:</span>
                   <span 
                     style={{ 
-                      fontSize: '13px', 
+                      fontSize: '12px', 
                       color: 'var(--app-color-text)',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
                       lineHeight: '1.4'
                     }}
-                    title={getSectionSummary(tocItems[rejectPopupSection as number]?.title)}
                   >
                     {getSectionSummary(tocItems[rejectPopupSection as number]?.title)}
                   </span>
@@ -2507,30 +2504,6 @@ export function SOWDraft({
               <Icon name="refresh-cw" size={20} style={{ color: 'var(--app-color-text)', marginRight: '12px' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Regenerate Section</h2>
-                <div 
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
-                  onMouseEnter={() => setShowRegenerateInfo(true)}
-                  onMouseLeave={() => setShowRegenerateInfo(false)}
-                >
-                  <Icon name="info" size={16} style={{ color: 'var(--app-color-primary)', cursor: 'pointer' }} />
-                  {showRegenerateInfo && (
-                    <div style={{
-                      position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
-                      backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
-                      borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px',
-                      width: '260px', zIndex: 1010, fontSize: '13px', lineHeight: '18px',
-                      color: 'var(--app-color-text)', fontWeight: 400, whiteSpace: 'normal', textAlign: 'center',
-                      animation: 'fadeIn 0.2s ease-out'
-                    }}>
-                      This is an AI generated report. Make sure you verify everything correctly.
-                      <div style={{
-                        position: 'absolute', top: '-6px', left: '50%', transform: 'translateX(-50%) rotate(45deg)',
-                        width: '10px', height: '10px', backgroundColor: 'var(--app-color-surface)',
-                        borderTop: '1px solid var(--app-color-border)', borderLeft: '1px solid var(--app-color-border)'
-                      }} />
-                    </div>
-                  )}
-                </div>
               </div>
               <button 
                 onClick={() => setRegeneratePopupSection(null)}
@@ -2542,32 +2515,42 @@ export function SOWDraft({
             
             {/* Body */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ 
+                backgroundColor: 'var(--app-color-primary-soft)', 
+                border: '1px solid var(--app-color-primary)', 
+                opacity: 0.8,
+                borderRadius: '8px', 
+                padding: '8px 12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Icon name="info" size={14} style={{ color: 'var(--app-color-primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: '12px', color: 'var(--app-color-text)', whiteSpace: 'nowrap' }}>
+                  <strong>Note:</strong> This content is AI-generated. Please review it carefully.
+                </span>
+              </div>
               <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
                 Provide specific instructions or context for the AI to regenerate this section.
               </p>
               {/* Information Card */}
               <div style={{ 
-                width: '100%', padding: '16px', backgroundColor: 'var(--app-color-surface-muted)', 
-                borderRadius: '8px', border: '1px solid var(--app-color-border)',
-                display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
+                width: '100%', padding: '12px', backgroundColor: 'var(--app-color-surface-muted)', 
+                borderRadius: '6px', border: '1px solid var(--app-color-border)',
+                display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
-                  <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[regeneratePopupSection as number]?.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Name:</span>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[regeneratePopupSection as number]?.title}</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', fontWeight: 500, width: '100px', flexShrink: 0 }}>Section Summary:</span>
                   <span 
                     style={{ 
-                      fontSize: '13px', 
+                      fontSize: '12px', 
                       color: 'var(--app-color-text)',
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
                       lineHeight: '1.4'
                     }}
-                    title={getSectionSummary(tocItems[regeneratePopupSection as number]?.title)}
                   >
                     {getSectionSummary(tocItems[regeneratePopupSection as number]?.title)}
                   </span>
@@ -3070,10 +3053,10 @@ export function SOWDraft({
       <Toast 
         isOpen={showSyncNotification}
         onClose={() => setShowSyncNotification(false)}
-        title="Another reviewer has updated this section."
+        title="Another reviewer has saved changes to this section."
         description={hasUnsavedChanges 
-          ? "Save or discard your changes before refreshing." 
-          : "Refresh the page to sync the latest changes."}
+          ? "Please save or discard your changes to sync the latest version." 
+          : "Please refresh to sync the latest version."}
         type="warning"
         duration={0}
         action={
@@ -3091,7 +3074,7 @@ export function SOWDraft({
           ) : (
             <Button variant="primary" onClick={handleRefreshSync} style={{ padding: '6px 12px', fontSize: '13px' }}>
               <Icon name="refresh-cw" size={14} style={{ marginRight: '6px' }} />
-              Refresh Now
+              Refresh
             </Button>
           )
         }
