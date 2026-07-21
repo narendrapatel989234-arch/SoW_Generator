@@ -5,8 +5,6 @@ import { Icon } from '../components/ui/Icon';
 import { RichEditor } from '../components/ui/RichEditor';
 import { AlertModal } from '../components/ui/AlertModal';
 import { Badge } from '../components/ui/Badge';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import pptxgen from 'pptxgenjs';
 import { Card } from '../components/ui/Card';
 import { Stepper } from '../components/ui/Stepper';
 import { MultiSelect } from '../components/ui/MultiSelect';
@@ -435,7 +433,7 @@ export function SOWDraft({
       setPendingTab(tab);
       setShowUnsavedModal(true);
     } else {
-      setActiveTab(tab);
+      setActiveTab(tab as any);
     }
   };
 
@@ -610,30 +608,32 @@ export function SOWDraft({
   const handleExportWord = async () => {
     setExportToastMessage('Word export started...');
     
-    const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({
-              text: "Statement of Work (SOW)",
-              heading: HeadingLevel.TITLE,
-            }),
-            ...tocItems.flatMap(item => [
-              new Paragraph({
-                text: item.title,
-                heading: HeadingLevel.HEADING_1,
-                spacing: { before: 400, after: 200 }
-              }),
-              new Paragraph({
-                text: `This section contains details regarding the ${item.title}. The content here is generated based on RFP requirements and supporting documents.`,
-              })
-            ])
-          ],
-        },
-      ],
-    });
-
     try {
+      const { Document, Packer, Paragraph, HeadingLevel } = await import('docx');
+      
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              new Paragraph({
+                text: "Statement of Work (SOW)",
+                heading: HeadingLevel.TITLE,
+              }),
+              ...tocItems.flatMap(item => [
+                new Paragraph({
+                  text: item.title,
+                  heading: HeadingLevel.HEADING_1,
+                  spacing: { before: 400, after: 200 }
+                }),
+                new Paragraph({
+                  text: `This section contains details regarding the ${item.title}. The content here is generated based on RFP requirements and supporting documents.`,
+                })
+              ])
+            ],
+          },
+        ],
+      });
+
       const blob = await Packer.toBlob(doc);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -656,14 +656,16 @@ export function SOWDraft({
       };
       setActivityLog(prev => [newActivity, ...prev]);
     } catch (error) {
+      console.error(error);
       setExportToastMessage('Failed to export Word document.');
     }
   };
 
-  const handleExportPPT = () => {
+  const handleExportPPT = async () => {
     setExportToastMessage('PPT export started...');
     
     try {
+      const { default: pptxgen } = await import('pptxgenjs');
       const pptx = new pptxgen();
       
       // Title slide
@@ -1849,7 +1851,7 @@ export function SOWDraft({
                   width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--app-color-danger)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
-                  <Icon name="alert-triangle" size={20} />
+                  <Icon name="alert-circle" size={20} />
                 </div>
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>Unsaved Changes</h3>
               </div>
@@ -1860,12 +1862,12 @@ export function SOWDraft({
             <div style={{ padding: '16px 24px', backgroundColor: 'var(--app-color-surface-muted)', borderTop: '1px solid var(--app-color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <Button variant="ghost" onClick={() => setShowUnsavedModal(false)}>Cancel</Button>
               <Button 
-                variant="outline" 
+                variant="ghost" 
                 style={{ color: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)' }}
                 onClick={() => {
                   setHasUnsavedChanges(false);
                   setShowUnsavedModal(false);
-                  if (pendingTab) setActiveTab(pendingTab);
+                  if (pendingTab) setActiveTab(pendingTab as any);
                 }}
               >
                 Discard Changes
@@ -1875,7 +1877,7 @@ export function SOWDraft({
                 onClick={() => {
                   handleSave();
                   setShowUnsavedModal(false);
-                  if (pendingTab) setActiveTab(pendingTab);
+                  if (pendingTab) setActiveTab(pendingTab as any);
                 }}
               >
                 Save & Continue
@@ -3082,7 +3084,7 @@ export function SOWDraft({
                 Save & Refresh
               </Button>
               <Button variant="ghost" onClick={handleDiscardAndRefresh} style={{ padding: '6px 12px', fontSize: '13px', color: 'var(--app-color-danger)' }}>
-                <Icon name="trash-2" size={14} style={{ marginRight: '6px' }} />
+                <Icon name="trash" size={14} style={{ marginRight: '6px' }} />
                 Discard & Refresh
               </Button>
             </>

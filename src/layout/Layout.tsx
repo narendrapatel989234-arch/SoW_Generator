@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { LeftNavigation, type ScreenId } from '../components/reusable/LeftNavigation';
 import { TopNavigation } from '../components/reusable/TopNavigation';
-import { UploadRFP } from '../screens/UploadRFP';
-import { SOWDraft } from '../screens/SOWDraft';
-import { Review } from '../screens/Review';
-import { ValidateSOW, type Section, mockSections } from '../screens/ValidateSOW';
-import { Templates } from '../screens/Templates';
-import { ActivityLog } from '../screens/ActivityLog';
+import { type Section, mockSections } from '../screens/ValidateSOW';
 import { Icon } from '../components/ui/Icon';
+
+const UploadRFP = React.lazy(() => import('../screens/UploadRFP').then(m => ({ default: m.UploadRFP })));
+const SOWDraft = React.lazy(() => import('../screens/SOWDraft').then(m => ({ default: m.SOWDraft })));
+const Review = React.lazy(() => import('../screens/Review').then(m => ({ default: m.Review })));
+const ValidateSOW = React.lazy(() => import('../screens/ValidateSOW').then(m => ({ default: m.ValidateSOW })));
+const Templates = React.lazy(() => import('../screens/Templates').then(m => ({ default: m.Templates })));
+const ActivityLog = React.lazy(() => import('../screens/ActivityLog').then(m => ({ default: m.ActivityLog })));
 
 interface LayoutProps {
   userRole?: string | null;
@@ -65,6 +67,12 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
           }
         />
         <div className="app-content" id="app-content">
+          <React.Suspense fallback={
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', flex: 1 }}>
+              <Icon name="loader" size={36} className="icon-spin" style={{ color: 'var(--app-color-primary)', marginBottom: '16px' }} />
+              <div style={{ color: 'var(--app-color-text-muted)' }}>Loading module...</div>
+            </div>
+          }>
           <div style={{ display: activeScreen === 'rfp-to-sow' ? 'block' : 'none', height: '100%' }}>
             <UploadRFP onTransitionToDraft={() => setActiveScreen('validate-sow')} />
           </div>
@@ -189,6 +197,7 @@ export function Layout({ userRole = 'PMO', onLogout }: LayoutProps) {
               </div>
             </div>
           )}
+          </React.Suspense>
         </div>
       </main>
     </div>
