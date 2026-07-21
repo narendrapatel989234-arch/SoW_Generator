@@ -10,9 +10,10 @@ interface RichEditorProps {
   onSectionChange?: (index: number) => void;
   lockedSections?: boolean[];
   onShowToast?: (msg: string) => void;
+  onContentChange?: (hasChanges: boolean) => void;
 }
 
-export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast }: RichEditorProps) {
+export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnly, children, onSectionChange, lockedSections, onShowToast, onContentChange }: RichEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
@@ -332,6 +333,9 @@ export function RichEditor({ tocItems, activeSectionIndex, isGenerating, readOnl
       const currentHtml = editorRef.current.innerHTML;
       setContentHtml(currentHtml);
       updateActiveFormats();
+      if (onContentChange) {
+        onContentChange(true);
+      }
     }
   };
 

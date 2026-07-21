@@ -9,6 +9,7 @@ interface ToastProps {
   description?: string;
   type?: 'success' | 'error' | 'info' | 'warning';
   duration?: number;
+  action?: React.ReactNode;
 }
 
 export function Toast({
@@ -17,7 +18,8 @@ export function Toast({
   title,
   description,
   type = 'success',
-  duration = 6000
+  duration = 6000,
+  action
 }: ToastProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -125,6 +127,11 @@ export function Toast({
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--app-color-text-muted)', lineHeight: 1.4 }}>
               {description}
             </p>
+          )}
+          {action && (
+            <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {action}
+            </div>
           )}
         </div>
 

@@ -7,7 +7,7 @@ export type IconName =
   | 'corner-up-left' | 'corner-up-right' | 'zoom-in' | 'zoom-out'
   | 'list' | 'list-ordered' | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
   | 'link' | 'image' | 'grid' | 'x-circle' | 'maximize' | 'minimize' | 'external-link' | 'paperclip' | 'more-horizontal'
-  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive' | 'clock' | 'info' | 'log-out' | 'lock';
+  | 'bold' | 'italic' | 'underline' | 'strikethrough' | 'remove-formatting' | 'indent' | 'outdent' | 'undo' | 'redo' | 'quote' | 'code' | 'share' | 'share-2' | 'search' | 'filter' | 'sparkles' | 'archive' | 'clock' | 'info' | 'log-out' | 'lock' | 'save';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName;
@@ -163,6 +163,9 @@ export function Icon({ name, size = 18, className = '', ...props }: IconProps) {
       path = <><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></>; break;
     case 'lock':
       path = <><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></>;
+      break;
+    case 'save':
+      path = <><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></>;
       break;
     case 'more-horizontal':
       path = <><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle><circle cx="5" cy="12" r="1.5"></circle></>; break;

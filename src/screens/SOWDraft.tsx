@@ -10,6 +10,7 @@ import pptxgen from 'pptxgenjs';
 import { Card } from '../components/ui/Card';
 import { Stepper } from '../components/ui/Stepper';
 import { MultiSelect } from '../components/ui/MultiSelect';
+import { Toast } from '../components/ui/Toast';
 import { type Section } from '../screens/ValidateSOW';
 
 const initialTocItems = [
@@ -34,6 +35,23 @@ const processingStages = [
   'Generating final Scope of Work',
   'Ready for review'
 ];
+
+const getSectionSummary = (title?: string) => {
+  if (!title) return '';
+  switch (title) {
+    case 'Objectives': return 'Defines the key business objectives, expected outcomes, and the overall purpose of the proposed solution.';
+    case 'Executive Summary': return 'Provides a high-level overview of the project, including its purpose, goals, and key deliverables.';
+    case 'Project Scope': return 'Outlines the specific boundaries, deliverables, and features that are included or excluded from the project.';
+    case 'Solution Architecture': return 'Describes the technical design, framework, and infrastructure required to implement the proposed solution.';
+    case 'Technical Requirements': return 'Details the hardware, software, and performance specifications necessary for the project.';
+    case 'Deliverables': return 'Lists the tangible outputs, documents, or products that will be provided upon project completion.';
+    case 'Timeline': return 'Specifies the project schedule, including key milestones, phases, and estimated completion dates.';
+    case 'Commercial Proposal': return 'Provides the pricing structure, payment terms, and overall cost breakdown for the proposed services.';
+    case 'Risks & Assumptions': return 'Identifies potential project risks and the underlying assumptions made during project planning.';
+    case 'Acceptance Criteria': return 'Defines the specific conditions and metrics that must be met for the deliverables to be accepted.';
+    default: return 'Provides detailed information, guidelines, and specifications relevant to this particular section of the document.';
+  }
+};
 
 interface TeamMember {
   name: string;
@@ -351,11 +369,160 @@ export function SOWDraft({
   
   // Export Menu States
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Editor Save States
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [showSaveTooltip, setShowSaveTooltip] = useState(false);
+  const [showApproveInfo, setShowApproveInfo] = useState(false);
+  const [showRegenerateInfo, setShowRegenerateInfo] = useState(false);
+  
+  // Sync Notification States
+  const [showSyncNotification, setShowSyncNotification] = useState(false);
+  const [syncTimestamp, setSyncTimestamp] = useState(0);
+  
+  const saveBtnRef = useRef<HTMLButtonElement>(null);
+  const [saveTooltipStyle, setSaveTooltipStyle] = useState<{top?: number, bottom?: number, left?: number, width?: number}>({});
+  const [saveTooltipArrowStyle, setSaveTooltipArrowStyle] = useState<any>({});
+
+  const handleSaveMouseEnter = () => {
+    if (saveBtnRef.current) {
+      const rect = saveBtnRef.current.getBoundingClientRect();
+      const tooltipWidth = 280;
+      const tooltipHeight = 80;
+      
+      let left = rect.left + (rect.width / 2) - (tooltipWidth / 2);
+      if (left + tooltipWidth > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipWidth - 10;
+      }
+      if (left < 10) left = 10;
+      
+      const arrowLeft = rect.left + (rect.width / 2) - left - 5; 
+      
+      let top: number | undefined;
+      let bottom: number | undefined;
+      let isTop = true;
+      
+      if (rect.top > tooltipHeight + 12) {
+        bottom = window.innerHeight - rect.top + 10;
+      } else {
+        top = rect.bottom + 10;
+        isTop = false;
+      }
+      
+      setSaveTooltipStyle({
+        ...(top !== undefined ? { top } : {}),
+        ...(bottom !== undefined ? { bottom } : {}),
+        left,
+        width: tooltipWidth
+      });
+      
+      setSaveTooltipArrowStyle({
+        [isTop ? 'bottom' : 'top']: '-6px',
+        left: arrowLeft,
+        borderBottom: isTop ? '1px solid var(--app-color-border)' : 'none',
+        borderRight: isTop ? '1px solid var(--app-color-border)' : 'none',
+        borderTop: !isTop ? '1px solid var(--app-color-border)' : 'none',
+        borderLeft: !isTop ? '1px solid var(--app-color-border)' : 'none'
+      });
+    }
+    setShowSaveTooltip(true);
+  };
+
+  const handleTabClick = (tab: string) => {
+    if (hasUnsavedChanges) {
+      setPendingTab(tab);
+      setShowUnsavedModal(true);
+    } else {
+      setActiveTab(tab);
+    }
+  };
+
+  const handleSave = () => {
+    setHasUnsavedChanges(false);
+    
+    // Broadcast save to other tabs
+    const sectionName = tocItems[activeSectionIndex]?.title;
+    if (sectionName) {
+      localStorage.setItem('sow-section-updated', JSON.stringify({
+        sectionName,
+        timestamp: Date.now(),
+        user: userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil',
+        sowId: 'SOW-2026-001'
+      }));
+    }
+
+    setToastMessage('Section saved successfully.');
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+  
+  const handleRefreshSync = () => {
+    setShowSyncNotification(false);
+    setHasUnsavedChanges(false);
+    setToastMessage('Latest changes synced successfully.');
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleSaveAndRefresh = () => {
+    handleSave();
+    setTimeout(() => {
+      handleRefreshSync();
+    }, 100);
+  };
+
+  const handleDiscardAndRefresh = () => {
+    handleRefreshSync();
+  };
+
   const [exportToastMessage, setExportToastMessage] = useState('');
   
   // Regenerate Section States
   const [regeneratePopupSection, setRegeneratePopupSection] = useState<number | null>(null);
   const [regenerationInstructions, setRegenerationInstructions] = useState('');
+
+  // Real-time reviewer sync listener
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'sow-section-updated' && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          const currentSectionName = tocItems[activeSectionIndex]?.title;
+          const currentUser = userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil';
+          const isShared = (tocItems[activeSectionIndex]?.assignedReviewers?.length || 0) > 1;
+          
+          if (data.sectionName === currentSectionName && data.user !== currentUser && isShared) {
+            setShowSyncNotification(true);
+            setSyncTimestamp(data.timestamp);
+          }
+        } catch (error) {
+          console.error("Failed to parse storage event", error);
+        }
+      }
+    };
+    
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [activeSectionIndex, tocItems, userRole]);
+
+  // Initial load check for missed syncs
+  useEffect(() => {
+    const lastUpdateStr = localStorage.getItem('sow-section-updated');
+    if (lastUpdateStr) {
+      try {
+        const data = JSON.parse(lastUpdateStr);
+        const currentUser = userRole === 'Reviewer' ? 'David Brown' : 'Dipali Balkrishna Patil';
+        const isShared = (tocItems[activeSectionIndex]?.assignedReviewers?.length || 0) > 1;
+        
+        if (data.sectionName === tocItems[activeSectionIndex]?.title && data.user !== currentUser && isShared && (Date.now() - data.timestamp < 5 * 60 * 1000)) {
+           setTimeout(() => {
+             setToastMessage('This section has been updated with the latest changes.');
+             setTimeout(() => setToastMessage(''), 4000);
+           }, 1000);
+        }
+      } catch(e) {}
+    }
+  }, [activeSectionIndex, tocItems, userRole]);
 
   // Global scroll lock for popups
   useEffect(() => {
@@ -701,7 +868,7 @@ export function SOWDraft({
             {userRole !== 'Reviewer' && (
               <button 
                 className={`tab-item ${activeTab === 'rfp' ? 'active' : ''}`}
-                onClick={() => setActiveTab('rfp')}
+                onClick={() => handleTabClick('rfp')}
               >
                 RFP
               </button>
@@ -709,26 +876,77 @@ export function SOWDraft({
             {userRole !== 'Reviewer' && (
               <button 
                 className={`tab-item ${activeTab === 'configure' ? 'active' : ''}`}
-                onClick={() => setActiveTab('configure')}
+                onClick={() => handleTabClick('configure')}
               >
                 Configure Sections
               </button>
             )}
             <button 
               className={`tab-item ${activeTab === 'sow' ? 'active' : ''}`}
-              onClick={() => setActiveTab('sow')}
+              onClick={() => handleTabClick('sow')}
             >
               SOW Draft
             </button>
             <button 
               className={`tab-item ${activeTab === 'activity' ? 'active' : ''}`}
-              onClick={() => setActiveTab('activity')}
+              onClick={() => handleTabClick('activity')}
             >
               Activity Log
             </button>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', paddingBottom: '12px' }}>
+            {userRole === 'Reviewer' && (
+              <>
+                <Button 
+                  ref={saveBtnRef}
+                  variant="primary" 
+                  disabled={!hasUnsavedChanges} 
+                  onClick={handleSave} 
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+                  onMouseEnter={handleSaveMouseEnter}
+                  onMouseLeave={() => setShowSaveTooltip(false)}
+                  onFocus={handleSaveMouseEnter}
+                  onBlur={() => setShowSaveTooltip(false)}
+                  aria-describedby="save-tooltip"
+                >
+                  <Icon name="save" size={16} /> Save
+                </Button>
+                
+                {showSaveTooltip && createPortal(
+                  <div 
+                    id="save-tooltip"
+                    role="tooltip"
+                    style={{
+                      position: 'fixed',
+                      ...saveTooltipStyle,
+                      backgroundColor: 'var(--app-color-surface)',
+                      border: '1px solid var(--app-color-border)',
+                      borderRadius: '8px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      padding: '12px',
+                      zIndex: 10000,
+                      fontSize: '13px',
+                      lineHeight: '18px',
+                      color: 'var(--app-color-text)',
+                      textAlign: 'left',
+                      animation: 'fadeIn 0.2s ease-out'
+                    }}
+                  >
+                    Save as you go. Your unsaved changes may be overwritten by another reviewer.
+                    <div style={{
+                      position: 'absolute',
+                      ...saveTooltipArrowStyle,
+                      width: '10px',
+                      height: '10px',
+                      backgroundColor: 'var(--app-color-surface)',
+                      transform: 'rotate(45deg)'
+                    }} />
+                  </div>,
+                  document.body
+                )}
+              </>
+            )}
             {userRole !== 'Reviewer' && exportBlock}
             {userRole === 'PMO' && (() => {
               const isFullyApproved = tocItems.length > 0 && tocItems.every(item => item.status === 'Approved');
@@ -1025,7 +1243,7 @@ export function SOWDraft({
                                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                           disabled={item.status === 'Rejected' || item.status === 'Rework Required'}
                                         >
-                                          <Icon name="corner-up-left" size={18} /> Rework
+                                          <Icon name="corner-up-left" size={18} /> Rework for all Reviewers
                                         </button>
                                       )}
                                     </div>
@@ -1095,6 +1313,7 @@ export function SOWDraft({
                         setToastMessage(msg);
                         setTimeout(() => setToastMessage(''), 3000);
                       }}
+                      onContentChange={(changed) => setHasUnsavedChanges(changed)}
                       onSectionChange={setActiveSectionIndex}
                     />
                   </>
@@ -1607,6 +1826,65 @@ export function SOWDraft({
         </div>
       )}
 
+      {/* Unsaved Changes Modal */}
+      {showUnsavedModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(13, 33, 44, 0.5)',
+          backdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 2500
+        }} onClick={() => setShowUnsavedModal(false)}>
+          <div style={{
+            width: '400px',
+            backgroundColor: 'var(--app-color-surface)',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column',
+            overflow: 'hidden'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '24px 24px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--app-color-danger)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  <Icon name="alert-triangle" size={20} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)' }}>Unsaved Changes</h3>
+              </div>
+              <p style={{ margin: 0, fontSize: '14px', color: 'var(--app-color-text-muted)', lineHeight: 1.5 }}>
+                You have unsaved changes in this section. Do you want to save before leaving?
+              </p>
+            </div>
+            <div style={{ padding: '16px 24px', backgroundColor: 'var(--app-color-surface-muted)', borderTop: '1px solid var(--app-color-border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <Button variant="ghost" onClick={() => setShowUnsavedModal(false)}>Cancel</Button>
+              <Button 
+                variant="outline" 
+                style={{ color: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)' }}
+                onClick={() => {
+                  setHasUnsavedChanges(false);
+                  setShowUnsavedModal(false);
+                  if (pendingTab) setActiveTab(pendingTab);
+                }}
+              >
+                Discard Changes
+              </Button>
+              <Button 
+                variant="primary" 
+                onClick={() => {
+                  handleSave();
+                  setShowUnsavedModal(false);
+                  if (pendingTab) setActiveTab(pendingTab);
+                }}
+              >
+                Save & Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Reviewer Confirmation Modal */}
       {reviewerPopupSection !== null && (
         <div style={{
@@ -1952,8 +2230,34 @@ export function SOWDraft({
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
-              <Icon name="check" size={20} style={{ color: 'var(--app-color-primary)', marginRight: '12px' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Approve Section</h2>
+              <Icon name="check" size={20} style={{ color: 'var(--app-color-text)', marginRight: '12px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Approve Section</h2>
+                <div 
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={() => setShowApproveInfo(true)}
+                  onMouseLeave={() => setShowApproveInfo(false)}
+                >
+                  <Icon name="info" size={16} style={{ color: 'var(--app-color-primary)', cursor: 'pointer' }} />
+                  {showApproveInfo && (
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
+                      borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px',
+                      width: '260px', zIndex: 1010, fontSize: '13px', lineHeight: '18px',
+                      color: 'var(--app-color-text)', fontWeight: 400, whiteSpace: 'normal', textAlign: 'center',
+                      animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                      This is an AI generated report. Make sure you verify everything correctly.
+                      <div style={{
+                        position: 'absolute', top: '-6px', left: '50%', transform: 'translateX(-50%) rotate(45deg)',
+                        width: '10px', height: '10px', backgroundColor: 'var(--app-color-surface)',
+                        borderTop: '1px solid var(--app-color-border)', borderLeft: '1px solid var(--app-color-border)'
+                      }} />
+                    </div>
+                  )}
+                </div>
+              </div>
               <button 
                 onClick={() => setApprovePopupSection(null)}
                 style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
@@ -1973,21 +2277,38 @@ export function SOWDraft({
                 borderRadius: '8px', border: '1px solid var(--app-color-border)',
                 display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
                   <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[approvePopupSection as number]?.title}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                  <span 
+                    style={{ 
+                      fontSize: '13px', 
+                      color: 'var(--app-color-text)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      lineHeight: '1.4'
+                    }}
+                    title={getSectionSummary(tocItems[approvePopupSection as number]?.title)}
+                  >
+                    {getSectionSummary(tocItems[approvePopupSection as number]?.title)}
+                  </span>
                 </div>
               </div>
 
-              {/* Approval Comments */}
+              {/* Approval Comment */}
               <div style={{ width: '100%', textAlign: 'left' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
-                  Approval Comments
+                  Approval Comment
                 </label>
                 <textarea 
                   value={approvalComment}
                   onChange={(e) => setApprovalComment(e.target.value)}
-                  placeholder="Add approval comments or notes (optional)..."
+                  placeholder="Add an approval comment or note (optional)..."
                   style={{
                     width: '100%', height: '72px', padding: '12px',
                     border: '1px solid var(--app-color-border)', borderRadius: '6px',
@@ -2030,7 +2351,9 @@ export function SOWDraft({
                 setToastMessage('Section approved.');
                 setTimeout(() => setToastMessage(''), 3000);
               }} style={{ padding: '8px 24px' }}>
-                Approve
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icon name="check" size={16} /> Approve
+                </div>
               </Button>
             </div>
           </div>
@@ -2056,8 +2379,8 @@ export function SOWDraft({
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
-              <Icon name="corner-up-left" size={20} style={{ color: 'var(--app-color-danger)', marginRight: '12px' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-danger)', margin: 0 }}>Rework Section</h2>
+              <Icon name="corner-up-left" size={20} style={{ color: 'var(--app-color-text)', marginRight: '12px' }} />
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Rework for all Reviewers</h2>
               <button 
                 onClick={() => setRejectPopupSection(null)}
                 style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
@@ -2077,16 +2400,33 @@ export function SOWDraft({
                 borderRadius: '8px', border: '1px solid var(--app-color-border)',
                 display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
                   <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[rejectPopupSection as number]?.title}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                  <span 
+                    style={{ 
+                      fontSize: '13px', 
+                      color: 'var(--app-color-text)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      lineHeight: '1.4'
+                    }}
+                    title={getSectionSummary(tocItems[rejectPopupSection as number]?.title)}
+                  >
+                    {getSectionSummary(tocItems[rejectPopupSection as number]?.title)}
+                  </span>
                 </div>
               </div>
 
               {/* Reject Comments */}
               <div style={{ width: '100%', textAlign: 'left' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: 'var(--app-color-text)', marginBottom: '8px' }}>
-                  Reason for Rework <span style={{ color: 'var(--app-color-danger)' }}>*</span>
+                  Rework Instructions <span style={{ color: 'var(--app-color-danger)' }}>*</span>
                 </label>
                 <textarea 
                   value={approvalComment}
@@ -2133,8 +2473,10 @@ export function SOWDraft({
                 setApprovalComment('');
                 setToastMessage('Rework requested for section.');
                 setTimeout(() => setToastMessage(''), 3000);
-              }} style={{ padding: '8px 24px', backgroundColor: 'var(--app-color-danger)', borderColor: 'var(--app-color-danger)', opacity: !approvalComment.trim() ? 0.6 : 1 }}>
-                Rework
+              }} style={{ padding: '8px 24px', opacity: !approvalComment.trim() ? 0.6 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icon name="corner-up-left" size={16} /> Rework for all Reviewers
+                </div>
               </Button>
             </div>
           </div>
@@ -2160,8 +2502,34 @@ export function SOWDraft({
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '24px', display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--app-color-border)' }}>
-              <Icon name="refresh-cw" size={20} style={{ color: 'var(--app-color-primary)', marginRight: '12px' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-primary)', margin: 0 }}>Regenerate Section</h2>
+              <Icon name="refresh-cw" size={20} style={{ color: 'var(--app-color-text)', marginRight: '12px' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--app-color-text)', margin: 0 }}>Regenerate Section</h2>
+                <div 
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+                  onMouseEnter={() => setShowRegenerateInfo(true)}
+                  onMouseLeave={() => setShowRegenerateInfo(false)}
+                >
+                  <Icon name="info" size={16} style={{ color: 'var(--app-color-primary)', cursor: 'pointer' }} />
+                  {showRegenerateInfo && (
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)',
+                      backgroundColor: 'var(--app-color-surface)', border: '1px solid var(--app-color-border)',
+                      borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '12px',
+                      width: '260px', zIndex: 1010, fontSize: '13px', lineHeight: '18px',
+                      color: 'var(--app-color-text)', fontWeight: 400, whiteSpace: 'normal', textAlign: 'center',
+                      animation: 'fadeIn 0.2s ease-out'
+                    }}>
+                      This is an AI generated report. Make sure you verify everything correctly.
+                      <div style={{
+                        position: 'absolute', top: '-6px', left: '50%', transform: 'translateX(-50%) rotate(45deg)',
+                        width: '10px', height: '10px', backgroundColor: 'var(--app-color-surface)',
+                        borderTop: '1px solid var(--app-color-border)', borderLeft: '1px solid var(--app-color-border)'
+                      }} />
+                    </div>
+                  )}
+                </div>
+              </div>
               <button 
                 onClick={() => setRegeneratePopupSection(null)}
                 style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px' }}
@@ -2181,9 +2549,26 @@ export function SOWDraft({
                 borderRadius: '8px', border: '1px solid var(--app-color-border)',
                 display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'left'
               }}>
-                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500 }}>Section Name:</span>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Name:</span>
                   <span style={{ fontSize: '14px', color: 'var(--app-color-text)', fontWeight: 600 }}>{tocItems[regeneratePopupSection as number]?.title}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'flex-start', gap: '12px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', fontWeight: 500, minWidth: '110px' }}>Section Summary:</span>
+                  <span 
+                    style={{ 
+                      fontSize: '13px', 
+                      color: 'var(--app-color-text)',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      lineHeight: '1.4'
+                    }}
+                    title={getSectionSummary(tocItems[regeneratePopupSection as number]?.title)}
+                  >
+                    {getSectionSummary(tocItems[regeneratePopupSection as number]?.title)}
+                  </span>
                 </div>
               </div>
 
@@ -2256,7 +2641,9 @@ export function SOWDraft({
                   setTimeout(() => setToastMessage(''), 3000);
                 }, 4400);
               }} style={{ padding: '8px 24px', opacity: !regenerationInstructions.trim() ? 0.6 : 1 }}>
-                <Icon name="sparkles" size={16} /> Regenerate
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Icon name="sparkles" size={16} /> Regenerate
+                </div>
               </Button>
             </div>
           </div>
@@ -2676,6 +3063,46 @@ export function SOWDraft({
           </div>
         </div>
       )}
+
+      {/* Sync Notification Toast */}
+      <Toast 
+        isOpen={showSyncNotification}
+        onClose={() => setShowSyncNotification(false)}
+        title="Another reviewer has updated this section."
+        description={hasUnsavedChanges 
+          ? "Save or discard your changes before refreshing." 
+          : "Refresh the page to sync the latest changes."}
+        type="warning"
+        duration={0}
+        action={
+          hasUnsavedChanges ? (
+            <>
+              <Button variant="primary" onClick={handleSaveAndRefresh} style={{ padding: '6px 12px', fontSize: '13px' }}>
+                <Icon name="save" size={14} style={{ marginRight: '6px' }} />
+                Save & Refresh
+              </Button>
+              <Button variant="ghost" onClick={handleDiscardAndRefresh} style={{ padding: '6px 12px', fontSize: '13px', color: 'var(--app-color-danger)' }}>
+                <Icon name="trash-2" size={14} style={{ marginRight: '6px' }} />
+                Discard & Refresh
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" onClick={handleRefreshSync} style={{ padding: '6px 12px', fontSize: '13px' }}>
+              <Icon name="refresh-cw" size={14} style={{ marginRight: '6px' }} />
+              Refresh Now
+            </Button>
+          )
+        }
+      />
+      
+      {/* Informational Toast Message */}
+      <Toast
+        isOpen={!!toastMessage}
+        onClose={() => setToastMessage('')}
+        title={toastMessage}
+        type="success"
+        duration={3000}
+      />
 
     </div>
     </>
