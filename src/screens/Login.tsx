@@ -78,7 +78,7 @@ export function Login({ onLogin }: LoginProps) {
               M42
             </div>
             <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--app-color-primary)', margin: 0, letterSpacing: '-0.5px' }}>
-              Document Generator
+              Document Creator
             </h1>
           </div>
 
@@ -87,7 +87,7 @@ export function Login({ onLogin }: LoginProps) {
               Intelligent business documents powered by AI.
             </h2>
             <p style={{ fontSize: '16px', color: 'var(--app-color-text-muted)', lineHeight: 1.6, margin: 0 }}>
-              Generate structured Statement of Work (SOW) documents from RFPs using AI with a streamlined review workflow.
+              Create structured Statement of Work (SOW) documents from RFPs using AI with a streamlined review workflow.
             </p>
           </div>
 
@@ -102,8 +102,8 @@ export function Login({ onLogin }: LoginProps) {
                 <Icon name="sparkles" size={20} />
               </div>
               <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--app-color-text)', margin: '0 0 4px 0' }}>AI Powered Generation</h3>
-                <p style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', margin: 0 }}>Generate document drafts in minutes using advanced language models.</p>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--app-color-text)', margin: '0 0 4px 0' }}>AI Powered Creation</h3>
+                <p style={{ fontSize: '13px', color: 'var(--app-color-text-muted)', margin: 0 }}>Create document drafts in minutes using advanced language models.</p>
               </div>
             </div>
 
@@ -197,7 +197,7 @@ export function Login({ onLogin }: LoginProps) {
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--app-color-text)', marginBottom: '2px' }}>PMO</div>
                     <div style={{ fontSize: '12px', color: 'var(--app-color-text-muted)', lineHeight: 1.4 }}>
-                      Manage document generation, configuration, reviewers and approvals.
+                      Manage document creation, configuration, reviewers and approvals.
                     </div>
                   </div>
                 </div>
